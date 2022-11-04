@@ -3,7 +3,7 @@ import sensor, image, time, os, tf, math, uos, gc, pyb
 #pyb.LED(4).on()
 
 sensor.reset()                         # Reset and initialize the sensor.
-sensor.set_pixformat(sensor.RGB565)    # Set pixel format to RGB565 (or GRAYSCALE)
+sensor.set_pixformat(sensor.GRAYSCALE)    # Set pixel format to RGB565 (or GRAYSCALE)
 sensor.set_framesize(sensor.QVGA)      # Set frame size to QVGA (320x240)
 sensor.set_windowing((240, 240))       # Set 240x240 window.
 #sensor.skip_frames(time=2000)          # Let the camera adjust.
@@ -23,23 +23,23 @@ try:
 except Exception as e:
     raise Exception('Failed to load "labels.txt", did you copy the .tflite and labels.txt file onto the mass-storage device? (' + str(e) + ')')
 
-colors = [ # Add more colors if you are detecting more than 7 types of classes at once.
-    (255,   0,   0),
-    (  0, 255,   0),
-    (255, 255,   0),
-    (  0,   0, 255),
-    (255,   0, 255),
-    (  0, 255, 255),
-    (255, 255, 255),
-]
-
-#colors = [
-    #235,
-    #128,
-    #64,
-    #200,
-    #0
+#colors = [ # Add more colors if you are detecting more than 7 types of classes at once.
+    #(255,   0,   0),
+    #(  0, 255,   0),
+    #(255, 255,   0),
+    #(  0,   0, 255),
+    #(255,   0, 255),
+    #(  0, 255, 255),
+    #(255, 255, 255),
 #]
+
+colors = [
+    235,
+    128,
+    64,
+    200,
+    0
+]
 
 circle_thresh = 1800
 
@@ -63,7 +63,7 @@ while(True):
     # Lens Corr: MT+2.1=1.5 OV+2.1=2.2
     #img = sensor.snapshot().lens_corr(2.2).rotation_corr(corners = TARGET_POINTS).crop(roi=(40, 0, 240, 240)).gaussian(2).histeq(False)
     #img = sensor.snapshot().rotation_corr(corners = TARGET_POINTS).crop(roi=(40, 0, 240, 240)).gaussian(2)#.histeq(False)
-    img = sensor.snapshot()#.histeq(False)
+    img = sensor.snapshot().bilateral(2, color_sigma=0.1, space_sigma=1)
 
     #second = img.binary([grayscale_thres], copy=True)
     #for i in range(4):
