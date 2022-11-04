@@ -1,0 +1,4 @@
+background
+black_ball
+corner
+silver_ball

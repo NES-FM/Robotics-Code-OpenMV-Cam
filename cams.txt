@@ -1,0 +1,18 @@
+Original:
+
+- H7 R2
+  - MT9M114 Sensor
+    - White Plug
+  - 2.1mm Lens
+    - No Text
+
+- H7 Pro
+  - OV5640 Sensor
+    - Black Plug
+  - 2.8mm Lens
+    - Text: IR 1080p 2.8mm
+
+Current:
+H7 Pro
+  - MT9M114 Sensor
+  - 2.1mm Lens
