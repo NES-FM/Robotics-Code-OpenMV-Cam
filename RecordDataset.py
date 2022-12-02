@@ -27,7 +27,7 @@ while(True):
     pyb.LED(1).off()
     time.sleep_ms(10)
 
-    img = sensor.snapshot().bilateral(2, color_sigma=0.1, space_sigma=1)
+    img = sensor.snapshot()#.bilateral(2, color_sigma=0.1, space_sigma=1)
     img.save(f"{dir_name}/img_{i:0>3}.bmp")
     with open("last_img.txt", "w") as f:
         f.write(str(i))
