@@ -1,12 +1,13 @@
 from typing import Optional, Any, Union
 from typing_extensions import TypeAlias
-import array
+
+from pyb_i2c import *
+from pyb_spi import *
+from pyb_uart import *
 
 hid_type: TypeAlias = int
 
-# The pyb module contains specific functions related to the board.
 # Time related functions¶
-
 def delay(ms: int) -> None: "Delay for the given number of milliseconds."
 
 def udelay(us: int) -> None: "Delay for the given number of microseconds."
@@ -45,7 +46,6 @@ def elapsed_micros(start: int) -> int: """Returns the number of microseconds whi
         pass"""
 
 # Reset related functions¶
-
 def hard_reset() -> None: "Resets the OpenMV Cam in a manner similar to pushing the external RESET button."
 
 def bootloader() -> None: "Activate the bootloader without BOOT* pins."
@@ -59,13 +59,11 @@ def fault_debug(value: bool) -> None: """Enable or disable hard-fault debugging.
     The default value is disabled, i.e. to automatically reset."""
 
 # Interrupt related functions¶
-
 def disable_irq() -> None: """Disable interrupt requests. Returns the previous IRQ state: False/True for disabled/enabled IRQs respectively. This return value can be passed to enable_irq to restore the IRQ to its original state."""
 
 def enable_irq(state: Optional[bool]) -> None: """Enable interrupt requests. If state is True (the "default value) then IRQs are enabled. If state is False then IRQs are disabled. The most common use of this function is to pass it the value returned by disable_irq to exit a critical section."""
 
 # Power related functions¶
-
 def wfi() -> None: """Wait for an internal or external interrupt.
 
     This executes a wfi instruction which reduces power consumption of the MCU until any interrupt occurs (be it internal or external), at which point execution continues. Note that the system-tick interrupt occurs once every millisecond (1000Hz) so this function will block for at most 1ms."""
@@ -83,7 +81,6 @@ def standby() -> None: """Put the OpenMV Cam into a “deep sleep” state.
     See rtc.wakeup() to configure a real-time-clock wakeup event."""
 
 # Miscellaneous functions¶
-
 def have_cdc() -> bool: """Return True if USB is connected as a serial device, False otherwise.
 
     Note
@@ -102,7 +99,7 @@ def main(filename: str) -> None: """Set the filename of the main script to run a
 
     It only makes sense to call this function from within boot.py."""
 
-def repl_uart(uart: uart) -> None: "Get or set the UART object where the REPL is repeated on."
+def repl_uart(uart: UART) -> None: "Get or set the UART object where the REPL is repeated on."
 
 def rng() -> int: "Return a 30-bit hardware generated random number."
 
@@ -191,13 +188,11 @@ class ADC:
 # class DAC – digital to analog conversion
 # class ExtInt – configure I/O pins to interrupt on external events
 # class Flash – access to built-in flash storage
-# class I2C – a two-wire serial protocol
 # class LED – LED object
 # class Pin – control I/O pins
 # class PinAF – Pin Alternate Functions
 # class RTC – real time clock
 # class Servo – 3-wire hobby servo driver
-# class SPI – a controller-driven serial protocol
 # class Timer – control internal timers
 # class TimerChannel — setup a channel for a timer
 # class UART – duplex serial communication bus
