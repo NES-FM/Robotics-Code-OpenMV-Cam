@@ -8,7 +8,7 @@
 		"python.autoComplete.extraPaths": [
 			"./autocomplete/"
 		],
-		"python.analysis.typeCheckingMode": "strict",
+		"python.analysis.typeCheckingMode": "basic",
 		"python.analysis.extraPaths": [
 			"./autocomplete/"
 		]
