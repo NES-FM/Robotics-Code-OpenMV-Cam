@@ -10,7 +10,10 @@
 		],
 		"python.analysis.typeCheckingMode": "basic",
 		"python.analysis.extraPaths": [
-			"./autocomplete/"
-		]
+			"./autocomplete/",
+			"./code/"
+		],
+		"python.analysis.autoImportCompletions": false,
+		"python.analysis.importFormat": "relative"
 	}
 }
