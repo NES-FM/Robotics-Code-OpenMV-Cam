@@ -31,7 +31,7 @@ def snapshot() -> Image:"""Takes a picture using the camera and returns an image
     sensor.snapshot() may apply cropping parameters to fit the snapshot in the available RAM the pixformat, framesize, windowing, and framebuffers. The cropping parameters will be applied to maintain the aspect ratio and will stay until sensor.set_framesize() or sensor.set_windowing() are called."""
 
 
-def skip_frames(n: Optional[int], time: Optional[int]) -> None: """Takes n number of snapshots to let the camera image stabilize after changing camera settings. n is passed as normal argument, e.g. skip_frames(10) to skip 10 frames. You should call this function after changing camera settings.
+def skip_frames(n: Optional[int] = ..., time: Optional[int] = ...) -> None: """Takes n number of snapshots to let the camera image stabilize after changing camera settings. n is passed as normal argument, e.g. skip_frames(10) to skip 10 frames. You should call this function after changing camera settings.
 
     Alternatively, you can pass the keyword argument time to skip frames for some number of milliseconds, e.g. skip_frames(time = 2000) to skip frames for 2000 milliseconds.
 
@@ -166,7 +166,7 @@ def set_quality(quality: int) -> None:"""Set the camera image JPEG compression q
 
 def set_colorbar(enable: bool) -> None:"Turns color bar mode on (True) or off (False). Defaults to off."
 
-def set_auto_gain(enable: bool, gain_db: Optional[int], gain_db_ceiling: Optional[int]) -> None:"""enable turns auto gain control on (True) or off (False). The camera will startup with auto gain control on.
+def set_auto_gain(enable: bool, gain_db: Optional[int] = ..., gain_db_ceiling: Optional[int] = ...) -> None:"""enable turns auto gain control on (True) or off (False). The camera will startup with auto gain control on.
 
     If enable is False you may set a fixed gain in decibels with gain_db.
 
@@ -188,7 +188,7 @@ def set_auto_exposure(enable: bool, exposure_us: int) -> None:"""enable turns au
 
 def get_exposure_us() -> int:"Returns the current camera exposure value in microseconds (int)."
 
-def set_auto_whitebal(enable: bool, rgb_gain_db: Optional[tuple[float, float, float]]) -> None:"""enable turns auto white balance on (True) or off (False). The camera will startup with auto white balance on.
+def set_auto_whitebal(enable: bool, rgb_gain_db: Optional[tuple[float, float, float]] = ...) -> None:"""enable turns auto white balance on (True) or off (False). The camera will startup with auto white balance on.
 
     If enable is False you may set a fixed gain in decibels for the red, green, and blue channels respectively with rgb_gain_db.
 
@@ -252,7 +252,7 @@ def set_framebuffers(count: Union[int, Framebuffers]) -> None:"""Sets the number
 
 def get_framebuffers() -> int: "Returns the current number of frame buffers allocated."
 
-def disable_full_flush(disable: Optional[bool]) -> None: """If disable is True then automatic framebuffer flushing mentioned in set_framebuffers is disabled. This removes any time limit on frames in the frame buffer fifo. For example, if you set the number of frame buffers to 30 and set the frame rate to 30 you can now precisely record 1 second of video from the camera without risk of frame loss.
+def disable_full_flush(disable: Optional[bool] = ...) -> None: """If disable is True then automatic framebuffer flushing mentioned in set_framebuffers is disabled. This removes any time limit on frames in the frame buffer fifo. For example, if you set the number of frame buffers to 30 and set the frame rate to 30 you can now precisely record 1 second of video from the camera without risk of frame loss.
 
     If this function is called with no arguments it returns if automatic flushing is disabled. By default automatic flushing on frame drop is enabled to clear out stale frames.
 

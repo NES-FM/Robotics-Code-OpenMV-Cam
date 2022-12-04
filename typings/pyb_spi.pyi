@@ -13,7 +13,7 @@ class SPI:
 
     At the moment, the NSS pin is not used by the SPI driver and is free for other use."""
     def deinit(self) -> None: """Turn off the SPI bus."""
-    def init(self, mode: SPI_mode, baudrate: Optional[int], prescaler: Optional[int], polarity: Optional[bool], phase: Optional[bool], bits: Optional[int], firstbit: SPI_msblsb, ti: Optional[bool], crc: Optional[int]) -> None: """Initialise the SPI bus with the given parameters:
+    def init(self, mode: SPI_mode, baudrate: Optional[int] = ..., prescaler: Optional[int] = ..., polarity: Optional[bool] = ..., phase: Optional[bool] = ..., bits: Optional[int] = ..., firstbit: SPI_msblsb = ..., ti: Optional[bool] = ..., crc: Optional[int] = ...) -> None: """Initialise the SPI bus with the given parameters:
 
                 mode must be either SPI.CONTROLLER or SPI.PERIPHERAL.
 
@@ -36,21 +36,21 @@ class SPI:
         Note that the SPI clock frequency will not always be the requested baudrate. The hardware only supports baudrates that are the APB bus frequency divided by a prescaler, which can be 2, 4, 8, 16, 32, 64, 128 or 256. SPI(2) is on AHB1. For precise control over the SPI clock frequency, specify prescaler instead of baudrate.
 
         Printing the SPI object will show you the computed baudrate and the chosen prescaler."""
-    def recv(self, recv: Union[int, bytearray], timeout: Optional[int]) -> bytearray: """Receive data on the bus:
+    def recv(self, recv: Union[int, bytes], timeout: Optional[int] = ...) -> bytes: """Receive data on the bus:
 
                 recv can be an integer, which is the number of bytes to receive, or a mutable buffer, which will be filled with received bytes.
 
                 timeout is the timeout in milliseconds to wait for the receive.
 
         Return value: if recv is an integer then a new buffer of the bytes received, otherwise the same buffer that was passed in to recv."""
-    def send(self, send: Union[int, bytearray], timeout: Optional[int]) -> None: """Send data on the bus:
+    def send(self, send: Union[int, bytes], timeout: Optional[int] = ...) -> None: """Send data on the bus:
 
                 send is the data to send (an integer to send, or a buffer object).
 
                 timeout is the timeout in milliseconds to wait for the send.
 
         Return value: None."""
-    def send_recv(self, send: Union[int, bytearray], recv: Optional[bytearray], timeout: Optional[int]) -> bytearray: """Send and receive data on the bus at the same time:
+    def send_recv(self, send: Union[int, bytes], recv: Optional[bytes] = ..., timeout: Optional[int] = ...) -> bytes: """Send and receive data on the bus at the same time:
 
                 send is the data to send (an integer to send, or a buffer object).
 

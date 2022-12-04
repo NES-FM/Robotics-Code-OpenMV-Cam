@@ -61,7 +61,7 @@ def fault_debug(value: bool) -> None: """Enable or disable hard-fault debugging.
 # Interrupt related functions¶
 def disable_irq() -> None: """Disable interrupt requests. Returns the previous IRQ state: False/True for disabled/enabled IRQs respectively. This return value can be passed to enable_irq to restore the IRQ to its original state."""
 
-def enable_irq(state: Optional[bool]) -> None: """Enable interrupt requests. If state is True (the "default value) then IRQs are enabled. If state is False then IRQs are disabled. The most common use of this function is to pass it the value returned by disable_irq to exit a critical section."""
+def enable_irq(state: Optional[bool] = ...) -> None: """Enable interrupt requests. If state is True (the "default value) then IRQs are enabled. If state is False then IRQs are disabled. The most common use of this function is to pass it the value returned by disable_irq to exit a critical section."""
 
 # Power related functions¶
 def wfi() -> None: """Wait for an internal or external interrupt.
@@ -93,7 +93,7 @@ def hid(arg: tuple[list[Any], float, float, float]) -> None: """Takes a 4-tuple 
 
     This function is deprecated. Use pyb.USB_HID.send() instead."""
 
-def info(dump_alloc_table: Optional[bool]) -> None: "Print out lots of information about the board."
+def info(dump_alloc_table: Optional[bool] = ...) -> None: "Print out lots of information about the board."
 
 def main(filename: str) -> None: """Set the filename of the main script to run after boot.py "is finished. If this function is not called then the default file main.py will be executed.
 
@@ -107,7 +107,7 @@ def sync() -> None: "Sync all file systems."
 
 def unique_id() -> str: "Returns a string of 12 bytes (96 bits), which is the unique ID of the MCU."
 
-def usb_mode(modestr: Optional[str], port: Optional[int], vid:Optional[int], pid:Optional[int], msc:Optional[Any], hid: Optional[hid_type], high_speed:Optional[bool]) -> Optional[str]: """If called with no arguments, return the current USB mode as a string.
+def usb_mode(modestr: Optional[str] = ..., port: Optional[int] = ..., vid:Optional[int] = ..., pid:Optional[int] = ..., msc:Optional[Any] = ..., hid: Optional[hid_type] = ..., high_speed:Optional[bool] = ...) -> Optional[str]: """If called with no arguments, return the current USB mode as a string.
 
     If called with modestr provided, attempts to configure the USB mode. The following values of modestr are understood:
 

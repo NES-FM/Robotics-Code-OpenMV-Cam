@@ -170,7 +170,7 @@ def save_descriptor(path: str, descriptor: Any) -> None:"""Saves the descriptor 
 
    ``path`` is the path to the descriptor file to save."""
 
-def match_descriptor(descritor0: Any, descriptor1: Any, threshold: Optional[int], filter_outliers: Optional[bool]) -> int:"""For LBP descriptors this function returns an integer representing the
+def match_descriptor(descritor0: Any, descriptor1: Any, threshold: Optional[int] = ..., filter_outliers: Optional[bool] = ...) -> int:"""For LBP descriptors this function returns an integer representing the
    difference between the two descriptors. You may then threshold/compare this
    distance metric as necessary. The distance is a measure of similarity. The
    closer it is to zero the better the LBP keypoint match.
@@ -226,7 +226,7 @@ class HaarCascade:
    have been labeled as images with cats and against hundreds of images with
    not cat like things labeled differently. The generator algorithm will then
    produce a Haar Cascade that detects cats."""
-   def __init__(self, path: str, stages: Optional[Any]) -> None:...
+   def __init__(self, path: str, stages: Optional[Any] = ...) -> None:...
       
 class histogram:
    """The histogram object is returned by `image.get_histogram()`.
@@ -576,6 +576,7 @@ class blob:
 
    def enclosed_ellipse(self) -> tuple[int, int, int, int, float]:"""Returns an ellipse tuple (x, y, rx, ry, rotation) that can be drawn with `image.draw_ellipse()`
       of the ellipse that fits inside of the min area rectangle of a blob."""
+   def __iter__(self) -> Any: pass
 
 class line:
    """The line object is returned by `image.find_lines()`, `image.find_line_segments()`, or `image.get_regression()`.
@@ -636,6 +637,8 @@ class circle:
    def magnitude(self) -> int: """Returns the circle's magnitude.
 
       You may also get this value doing ``[3]`` on the object."""
+      
+   def __iter__(self) -> Any: pass
 
 class rect:
    """The rect object is returned by `image.find_rects()`.
@@ -1216,7 +1219,7 @@ class ImageIO:
 
       Returns the ImageIO object."""
 
-   def read(self, copy_to_fb: Optional[bool], loop: Optional[bool], pause: Optional[bool]) -> Image: 
+   def read(self, copy_to_fb: Optional[bool] = ..., loop: Optional[bool] = ..., pause: Optional[bool] = ...) -> Image: 
       """Returns an image object from the ImageIO object. If ``copy_to_fb`` is False then
       the new image is allocated on the MicroPython heap. However, the MicroPython heap is limited
       and may not have space to store the new image if exhausted. Instead, set ``copy_to_fb`` to
@@ -1249,7 +1252,7 @@ class ImageIO:
 class Image:
    "The image object is the basic object for machine vision operations."
 
-   def __init__(self, path: str, copy_to_fb: Optional[bool]) -> None:
+   def __init__(self, path: str, copy_to_fb: Optional[bool] = ...) -> None:
       """Creates a new image object from a file at ``path``. Alternatively, you may
       pass a width, height, and either `sensor.BINARY`, `sensor.GRAYSCALE`, or
       `sensor.RGB565` to create new blank image object (initialized to 0 - black).
@@ -1305,7 +1308,7 @@ class Image:
          that requires a `bytes` like object. This is read-only access.
          Call `bytearray()` to get read/write access."""
 
-   def get_pixel(self, x: int, y: int, rgbtuple: Optional[bool]) -> Union[int, tuple[int, int, int], None]:
+   def get_pixel(self, x: int, y: int, rgbtuple: Optional[bool] = ...) -> Union[int, tuple[int, int, int], None]:
       """For grayscale images: Returns the grayscale pixel value at location (x, y).
       For RGB565 images: Returns the RGB888 pixel tuple (r, g, b) at location (x, y).
       For bayer pattern images: Returns the the pixel value at the location (x, y).
@@ -1367,7 +1370,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def midpoint_pool(self, x_div: int, y_div: int, bias: Optional[float]) -> Image:"""Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
+   def midpoint_pool(self, x_div: int, y_div: int, bias: Optional[float] = ...) -> Image:"""Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
       the modified image composed of the midpoint of each square.
 
       A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
@@ -1377,7 +1380,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def midpoint_pooled(self, x_div: int, y_div: int, bias: Optional[float]) -> Image:"""Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
+   def midpoint_pooled(self, x_div: int, y_div: int, bias: Optional[float] = ...) -> Image:"""Finds the midpoint of ``x_div`` * ``y_div`` squares in the image and returns
       a new image composed of the midpoint of each square.
 
       A ``bias`` of 0.0 returns the min of each area while a ``bias`` of 1.0 returns
@@ -1387,7 +1390,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def to_bitmap(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy: Optional[bool])-> Image:"""
+   def to_bitmap(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy: Optional[bool] = ...)-> Image:"""
 
       Converts an image to a bitmap image (1 bit per pixel). If ``copy`` is False
       this method will try to modify the image in-place. If ``copy`` is True then
@@ -1464,7 +1467,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def to_grayscale(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy: Optional[bool]) -> Image:"""
+   def to_grayscale(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy: Optional[bool] = ...) -> Image:"""
 
       Converts an image to a grayscale image (8-bits per pixel). If ``copy`` is False
       this method will try to modify the image in-place. If ``copy`` is True then
@@ -1527,7 +1530,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def to_rgb565(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy: Optional[bool]) -> Image:
+   def to_rgb565(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy: Optional[bool] = ...) -> Image:
       """Converts an image to an RGB565 image (16-bits per pixel). If ``copy`` is False
       this method will try to modify the image in-place. If ``copy`` is True then
       this method will return a new image copy allocated on the heap.
@@ -1589,7 +1592,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def to_rainbow(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy: Optional[bool]) -> Image:
+   def to_rainbow(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy: Optional[bool] = ...) -> Image:
       """
       Converts an image to an RGB565 rainbow image (16-bits per pixel). If ``copy`` is False
       this method will try to modify the image in-place. If ``copy`` is True then
@@ -1734,7 +1737,7 @@ class Image:
 
       Only works on JPEG images."""
 
-   def copy(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy_to_fb: Optional[bool]) -> Image:
+   def copy(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy_to_fb: Optional[bool] = ...) -> Image:
       """
       Creates a deep copy of the image object. If ``copy_to_fb`` is False then
       the new image is allocated on the MicroPython heap. However, the MicroPython heap is limited
@@ -1803,7 +1806,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def crop(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy: Optional[bool]) -> Image:
+   def crop(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy: Optional[bool] = ...) -> Image:
       """
 
       Modifies an image in-place without changing the underlying image type. If ``copy`` is False
@@ -1867,7 +1870,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def scale(self, x_scale: Optional[float], y_scale: Optional[float], roi: Optional[tuple[int, int, int, int]], rgb_channel: Optional[int], alpha: Optional[int], color_palette: Color_palette, alpha_palette: Optional[int], hint: Optional[Conversion_hints], x_size: Optional[int], y_size: Optional[int], copy_to_fb: Optional[bool]) -> Image:
+   def scale(self, x_scale: Optional[float] = ..., y_scale: Optional[float] = ..., roi: Optional[tuple[int, int, int, int]] = ..., rgb_channel: Optional[int] = ..., alpha: Optional[int] = ..., color_palette: Color_palette = ..., alpha_palette: Optional[int] = ..., hint: Optional[Conversion_hints] = ..., x_size: Optional[int] = ..., y_size: Optional[int] = ..., copy_to_fb: Optional[bool] = ...) -> Image:
       """
 
       Modifies an image in-place without changing the underlying image type. If ``copy`` is False
@@ -1931,7 +1934,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def save(self, path: str, roi: Optional[tuple[int, int, int, int]], quality: Optional[int]) -> Image:"""Saves a copy of the image to the filesystem at ``path``.
+   def save(self, path: str, roi: Optional[tuple[int, int, int, int]] = ..., quality: Optional[int] = ...) -> Image:"""Saves a copy of the image to the filesystem at ``path``.
 
       Supports bmp/pgm/ppm/jpg/jpeg image files. Note that you cannot save jpeg
       compressed images to an uncompressed format.
@@ -1947,7 +1950,7 @@ class Image:
 
    def flush(self) -> None:"""Updates the frame buffer in the IDE with the image in the frame buffer on the camera."""
 
-   def clear(self, mask: Optional[Image]) -> Image:"""Sets all pixels in the image to zero (very fast).
+   def clear(self, mask: Optional[Image] = ...) -> Image:"""Sets all pixels in the image to zero (very fast).
 
       ``mask`` is another image to use as a pixel level mask for the operation.
       The mask should be an image with just black or white pixels and should be the
@@ -1958,7 +1961,7 @@ class Image:
 
       Not supported on compressed images."""
 
-   def draw_line(self, x0:int, y0:int, x1:int, y1:int, color: Optional[Union[int, tuple[int, int, int]]], thickness: Optional[int]) -> Image:"""Draws a line from (x0, y0) to (x1, y1) on the image. You may either
+   def draw_line(self, x0:int, y0:int, x1:int, y1:int, color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ...) -> Image:"""Draws a line from (x0, y0) to (x1, y1) on the image. You may either
       pass x0, y0, x1, y1 separately or as a tuple (x0, y0, x1, y1).
 
       ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
@@ -1971,7 +1974,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def draw_rectangle(self, x:int, y:int, w:int, h:int, color: Optional[Union[int, tuple[int, int, int]]], thickness: Optional[int], fill:Optional[bool]) -> Image:"""Draws a rectangle on the image. You may either pass x, y, w, h separately
+   def draw_rectangle(self, x:int, y:int, w:int, h:int, color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ..., fill:Optional[bool] = ...) -> Image:"""Draws a rectangle on the image. You may either pass x, y, w, h separately
       or as a tuple (x, y, w, h).
 
       ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
@@ -1986,7 +1989,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def draw_circle(self, x: int, y: int, radius: int, color: Optional[Union[int, tuple[int, int, int]]], thickness: Optional[int], fill:Optional[bool]) -> Image:"""Draws a circle on the image. You may either pass x, y, radius separately or
+   def draw_circle(self, x: int, y: int, radius: int, color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ..., fill:Optional[bool] = ...) -> Image:"""Draws a circle on the image. You may either pass x, y, radius separately or
       as a tuple (x, y, radius).
 
       ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
@@ -2001,7 +2004,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def draw_ellipse(self, cx:int, cy:int, rx:int, ry:int, rotation:int, color: Optional[Union[int, tuple[int, int, int]]], thickness: Optional[int], fill:Optional[bool]) -> Image:"""Draws an ellipse on the image. You may either pass cx, cy, rx, ry, and the
+   def draw_ellipse(self, cx:int, cy:int, rx:int, ry:int, rotation:int, color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ..., fill:Optional[bool] = ...) -> Image:"""Draws an ellipse on the image. You may either pass cx, cy, rx, ry, and the
       rotation (in degrees) separately or as a tuple (cx, yc, rx, ry, rotation).
 
       ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
@@ -3052,64 +3055,64 @@ class Image:
 
    #    This method is not available on the OpenMV Cam M4."""
 
-   # def get_histogram(self, [thresholds, [invert=False, [roi: tuple[int, int, int, int], [bins, [l_bins, [a_bins, [b_bins, [difference]]]]]]]]) -> Image:"""Computes the normalized histogram on all color channels for an ``roi`` and
-   #    returns a `image.histogram` object. Please see the `image.histogram` object for more
-   #    information. You can also invoke this method by using ``image.get_hist()`` or
-   #    ``image.histogram()``. If you pass a list of ``thresholds`` then the histogram
-   #    information will only be computed from pixels within the threshold list.
+   def get_histogram(self, thresholds: Optional[list[tuple[int, int]]] = ..., invert: bool = ..., roi: tuple[int, int, int, int] = ..., bins: int = ..., l_bins: int = ..., a_bins: int = ..., b_bins: int = ..., difference: Image = ...) -> histogram:"""Computes the normalized histogram on all color channels for an ``roi`` and
+      returns a `image.histogram` object. Please see the `image.histogram` object for more
+      information. You can also invoke this method by using ``image.get_hist()`` or
+      ``image.histogram()``. If you pass a list of ``thresholds`` then the histogram
+      information will only be computed from pixels within the threshold list.
 
-   #    ``thresholds`` must be a list of tuples
-   #    ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
-   #    want to track. For
-   #    grayscale images each tuple needs to contain two values - a min grayscale
-   #    value and a max grayscale value. Only pixel regions that fall between these
-   #    thresholds will be considered. For RGB565 images each tuple needs to have
-   #    six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
-   #    maximums for the LAB L, A, and B channels respectively. For easy usage this
-   #    function will automatically fix swapped min and max values. Additionally,
-   #    if a tuple is larger than six values the rest are ignored. Conversely, if the
-   #    tuple is too short the rest of the thresholds are assumed to be at maximum
-   #    range.
+      ``thresholds`` must be a list of tuples
+      ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+      want to track. For
+      grayscale images each tuple needs to contain two values - a min grayscale
+      value and a max grayscale value. Only pixel regions that fall between these
+      thresholds will be considered. For RGB565 images each tuple needs to have
+      six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+      maximums for the LAB L, A, and B channels respectively. For easy usage this
+      function will automatically fix swapped min and max values. Additionally,
+      if a tuple is larger than six values the rest are ignored. Conversely, if the
+      tuple is too short the rest of the thresholds are assumed to be at maximum
+      range.
 
-   #    Note
-   #    ----
+      Note
+      ----
 
-   #       To get the thresholds for the object you want to track just select (click
-   #       and drag) on the object you want to track in the IDE frame buffer. The
-   #       histogram will then update to just be in that area. Then just write down
-   #       where the color distribution starts and falls off in each histogram channel.
-   #       These will be your low and high values for ``thresholds``. It's best to
-   #       manually determine the thresholds versus using the upper and lower
-   #       quartile statistics because they are too tight.
+         To get the thresholds for the object you want to track just select (click
+         and drag) on the object you want to track in the IDE frame buffer. The
+         histogram will then update to just be in that area. Then just write down
+         where the color distribution starts and falls off in each histogram channel.
+         These will be your low and high values for ``thresholds``. It's best to
+         manually determine the thresholds versus using the upper and lower
+         quartile statistics because they are too tight.
 
-   #       You may also determine color thresholds by going into
-   #       ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
-   #       thresholds from the GUI slider window.
+         You may also determine color thresholds by going into
+         ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+         thresholds from the GUI slider window.
 
-   #    ``invert`` inverts the thresholding operation such that instead of matching
-   #    pixels inside of some known color bounds pixels are matched that are outside
-   #    of the known color bounds.
+      ``invert`` inverts the thresholding operation such that instead of matching
+      pixels inside of some known color bounds pixels are matched that are outside
+      of the known color bounds.
 
-   #    Unless you need to do something advanced with color statistics just use the
-   #    `image.get_statistics()` method instead of this method for looking at pixel
-   #    areas in an image.
+      Unless you need to do something advanced with color statistics just use the
+      `image.get_statistics()` method instead of this method for looking at pixel
+      areas in an image.
 
-   #    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
-   #    specified, it is equal to the image rectangle. Only pixels within the
-   #    ``roi`` are operated on.
+      ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+      specified, it is equal to the image rectangle. Only pixels within the
+      ``roi`` are operated on.
 
-   #    ``bins`` and others are the number of bins to use for the histogram
-   #    channels. For grayscale images use ``bins`` and for RGB565 images use
-   #    the others for each channel. The bin counts must be greater than 2 for each
-   #    channel. Additionally, it makes no sense to set the bin count larger than
-   #    the number of unique pixel values for each channel. By default, the historgram
-   #    will have the maximum number of bins per channel.
+      ``bins`` and others are the number of bins to use for the histogram
+      channels. For grayscale images use ``bins`` and for RGB565 images use
+      the others for each channel. The bin counts must be greater than 2 for each
+      channel. Additionally, it makes no sense to set the bin count larger than
+      the number of unique pixel values for each channel. By default, the historgram
+      will have the maximum number of bins per channel.
 
-   #    ``difference`` may be set to an image object to cause this method to operate
-   #    on the difference image between the current image and the ``difference`` image
-   #    object. This saves having to use a separate buffer.
+      ``difference`` may be set to an image object to cause this method to operate
+      on the difference image between the current image and the ``difference`` image
+      object. This saves having to use a separate buffer.
 
-   #    Not supported on compressed images or bayer images."""
+      Not supported on compressed images or bayer images."""
 
    # def get_statistics(self, [thresholds, [invert=False, [roi: tuple[int, int, int, int], [bins, [l_bins, [a_bins, [b_bins, [difference]]]]]]]]) -> Image:"""Computes the mean, median, mode, standard deviation, min, max, lower
    #    quartile, and upper quartile for all color channels for an ``roi`` and
@@ -3233,102 +3236,102 @@ class Image:
 
    #    Not supported on compressed images or bayer images."""
 
-   # def find_blobs(self, thresholds, [invert=False, [roi: tuple[int, int, int, int], [x_stride=2, [y_stride=1, [area_threshold=10, [pixels_threshold=10, [merge=False, [margin=0, [threshold_cb=None,  -> Image:"""b=None, [x_hist_bins_max=0, [y_hist_bins_max=0]]]]]]]]]]]])
+   def find_blobs(self, thresholds: Union[list[tuple[int, int]], list[tuple[int, int, int, int, int, int]]], invert=False, roi:tuple[int, int, int, int]=..., x_stride=2, y_stride=1, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None, x_hist_bins_max=0, y_hist_bins_max=0) -> blob:
 
-   #    Finds all blobs (connected pixel regions that pass a threshold test) in the
-   #    image and returns a list of `image.blob` objects which describe each blob.
-   #    Please see the `image.blob` object more more information.
+      """Finds all blobs (connected pixel regions that pass a threshold test) in the
+      image and returns a list of `image.blob` objects which describe each blob.
+      Please see the `image.blob` object more more information.
 
-   #    ``thresholds`` must be a list of tuples
-   #    ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
-   #    want to track. You may pass up to 32 threshold tuples in one call. For
-   #    grayscale images each tuple needs to contain two values - a min grayscale
-   #    value and a max grayscale value. Only pixel regions that fall between these
-   #    thresholds will be considered. For RGB565 images each tuple needs to have
-   #    six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
-   #    maximums for the LAB L, A, and B channels respectively. For easy usage this
-   #    function will automatically fix swapped min and max values. Additionally,
-   #    if a tuple is larger than six values the rest are ignored. Conversely, if the
-   #    tuple is too short the rest of the thresholds are assumed to be at maximum
-   #    range.
+      ``thresholds`` must be a list of tuples
+      ``[(lo, hi), (lo, hi), ..., (lo, hi)]`` defining the ranges of color you
+      want to track. You may pass up to 32 threshold tuples in one call. For
+      grayscale images each tuple needs to contain two values - a min grayscale
+      value and a max grayscale value. Only pixel regions that fall between these
+      thresholds will be considered. For RGB565 images each tuple needs to have
+      six values (l_lo, l_hi, a_lo, a_hi, b_lo, b_hi) - which are minimums and
+      maximums for the LAB L, A, and B channels respectively. For easy usage this
+      function will automatically fix swapped min and max values. Additionally,
+      if a tuple is larger than six values the rest are ignored. Conversely, if the
+      tuple is too short the rest of the thresholds are assumed to be at maximum
+      range.
 
-   #    Note
-   #    ----
+      Note
+      ----
 
-   #       To get the thresholds for the object you want to track just select (click
-   #       and drag) on the object you want to track in the IDE frame buffer. The
-   #       histogram will then update to just be in that area. Then just write down
-   #       where the color distribution starts and falls off in each histogram channel.
-   #       These will be your low and high values for ``thresholds``. It's best to
-   #       manually determine the thresholds versus using the upper and lower
-   #       quartile statistics because they are too tight.
+         To get the thresholds for the object you want to track just select (click
+         and drag) on the object you want to track in the IDE frame buffer. The
+         histogram will then update to just be in that area. Then just write down
+         where the color distribution starts and falls off in each histogram channel.
+         These will be your low and high values for ``thresholds``. It's best to
+         manually determine the thresholds versus using the upper and lower
+         quartile statistics because they are too tight.
 
-   #       You may also determine color thresholds by going into
-   #       ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
-   #       thresholds from the GUI slider window.
+         You may also determine color thresholds by going into
+         ``Tools->Machine Vision->Threshold Editor`` in OpenMV IDE and selecting
+         thresholds from the GUI slider window.
 
-   #    ``invert`` inverts the thresholding operation such that instead of matching
-   #    pixels inside of some known color bounds pixels are matched that are outside
-   #    of the known color bounds.
+      ``invert`` inverts the thresholding operation such that instead of matching
+      pixels inside of some known color bounds pixels are matched that are outside
+      of the known color bounds.
 
-   #    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
-   #    specified, it is equal to the image rectangle. Only pixels within the
-   #    ``roi`` are operated on.
+      ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+      specified, it is equal to the image rectangle. Only pixels within the
+      ``roi`` are operated on.
 
-   #    ``x_stride`` is the number of x pixels to skip when searching for a blob.
-   #    Once a blob is found the line fill algorithm will be pixel accurate.
-   #    Increase ``x_stride`` to speed up finding blobs if blobs are known to be large.
+      ``x_stride`` is the number of x pixels to skip when searching for a blob.
+      Once a blob is found the line fill algorithm will be pixel accurate.
+      Increase ``x_stride`` to speed up finding blobs if blobs are known to be large.
 
-   #    ``y_stride`` is the number of y pixels to skip when searching for a blob.
-   #    Once a blob is found the line fill algorithm will be pixel accurate.
-   #    Increase ``y_stride`` to speed up finding blobs if blobs are known to be large.
+      ``y_stride`` is the number of y pixels to skip when searching for a blob.
+      Once a blob is found the line fill algorithm will be pixel accurate.
+      Increase ``y_stride`` to speed up finding blobs if blobs are known to be large.
 
-   #    If a blob's bounding box area is less than ``area_threshold`` it is filtered
-   #    out.
+      If a blob's bounding box area is less than ``area_threshold`` it is filtered
+      out.
 
-   #    If a blob's pixel count is less than ``pixels_threshold`` it is filtered out.
+      If a blob's pixel count is less than ``pixels_threshold`` it is filtered out.
 
-   #    ``merge`` if True merges all not filtered out blobs whos bounding
-   #    rectangles intersect each other. ``margin`` can be used to increase or
-   #    decrease the size of the bounding rectangles for blobs during the
-   #    intersection test. For example, with a margin of 1 blobs whos bounding
-   #    rectangles are 1 pixel away from each other will be merged.
+      ``merge`` if True merges all not filtered out blobs whos bounding
+      rectangles intersect each other. ``margin`` can be used to increase or
+      decrease the size of the bounding rectangles for blobs during the
+      intersection test. For example, with a margin of 1 blobs whos bounding
+      rectangles are 1 pixel away from each other will be merged.
 
-   #    Merging blobs allows you to implement color code tracking. Each blob object
-   #    has a ``code`` value which is a bit vector made up of 1s for each color
-   #    threshold. For example, if you pass `image.find_blobs` two color
-   #    thresholds then the first threshold has a code of 1 and the second 2 (a
-   #    third threshold would be 4 and a fourth would be 8 and so on). Merged blobs
-   #    logically OR all their codes together so that you know what colors produced
-   #    them. This allows you to then track two colors if you get a blob object
-   #    back with two colors then you know it might be a color code.
+      Merging blobs allows you to implement color code tracking. Each blob object
+      has a ``code`` value which is a bit vector made up of 1s for each color
+      threshold. For example, if you pass `image.find_blobs` two color
+      thresholds then the first threshold has a code of 1 and the second 2 (a
+      third threshold would be 4 and a fourth would be 8 and so on). Merged blobs
+      logically OR all their codes together so that you know what colors produced
+      them. This allows you to then track two colors if you get a blob object
+      back with two colors then you know it might be a color code.
 
-   #    You might also want to merge blobs if you are using tight color bounds which
-   #    do not fully track all the pixels of an object you are trying to follow.
+      You might also want to merge blobs if you are using tight color bounds which
+      do not fully track all the pixels of an object you are trying to follow.
 
-   #    Finally, if you want to merge blobs, but, don't want two color thresholds to
-   #    be merged then just call `image.find_blobs` twice with separate thresholds
-   #    so that blobs aren't merged.
+      Finally, if you want to merge blobs, but, don't want two color thresholds to
+      be merged then just call `image.find_blobs` twice with separate thresholds
+      so that blobs aren't merged.
 
-   #    ``threshold_cb`` may be set to the function to call on every blob after its
-   #    been thresholded to filter it from the list of blobs to be merged. The call
-   #    back function will receive one argument - the blob object to be filtered.
-   #    The call back then must return True to keep the blob and False to filter it.
+      ``threshold_cb`` may be set to the function to call on every blob after its
+      been thresholded to filter it from the list of blobs to be merged. The call
+      back function will receive one argument - the blob object to be filtered.
+      The call back then must return True to keep the blob and False to filter it.
 
-   #    ``merge_cb`` may be set to the function to call on every two blobs about to
-   #    be merged to prevent or allow the merge. The call back function will receive
-   #    two arguments - the two blob objects to be merged. The call back then must
-   #    return True to merge the blobs or False to prevent merging the blobs.
+      ``merge_cb`` may be set to the function to call on every two blobs about to
+      be merged to prevent or allow the merge. The call back function will receive
+      two arguments - the two blob objects to be merged. The call back then must
+      return True to merge the blobs or False to prevent merging the blobs.
 
-   #    ``x_hist_bins_max`` if set to non-zero populates a histogram buffer in each
-   #    blob object with an x_histogram projection of all columns in the object. This
-   #    value then sets the number of bins for that projection.
+      ``x_hist_bins_max`` if set to non-zero populates a histogram buffer in each
+      blob object with an x_histogram projection of all columns in the object. This
+      value then sets the number of bins for that projection.
 
-   #    ``y_hist_bins_max`` if set to non-zero populates a histogram buffer in each
-   #    blob object with an y_histogram projection of all rows in the object. This
-   #    value then sets the number of bins for that projection.
+      ``y_hist_bins_max`` if set to non-zero populates a histogram buffer in each
+      blob object with an y_histogram projection of all rows in the object. This
+      value then sets the number of bins for that projection.
 
-   #    Not supported on compressed images or bayer images."""
+      Not supported on compressed images or bayer images."""
 
    # def find_lines(self, [roi: tuple[int, int, int, int], [x_stride=2, [y_stride=1, [threshold=1000, [theta_margin=25, [rho_margin=25]]]]]]) -> Image:"""Finds all infinite lines in the image using the hough transform. Returns a list
    #    of `image.line` objects.
@@ -3384,45 +3387,45 @@ class Image:
 
    #    This method is not available on the OpenMV Cam M4."""
 
-   # def find_circles(self, [roi: tuple[int, int, int, int], [x_stride=2, [y_stride=1, [threshold=2000, [x_margin=10, [y_margin=10, [r_margin=10, [r_min=2, [r_max, [r_step=2]]]]]]]]]]) -> Image:"""Finds circles in the image using the hough transform. Returns a list of
-   #    `image.circle` objects.
+   def find_circles(self, roi: tuple[int, int, int, int] = ..., x_stride=2, y_stride=1, threshold=2000, x_margin=10, y_margin=10, r_margin=10, r_min=2, r_max = ..., r_step=2) -> circle:"""Finds circles in the image using the hough transform. Returns a list of
+      `image.circle` objects.
 
-   #    ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
-   #    specified, it is equal to the image rectangle. Only pixels within the
-   #    ``roi`` are operated on.
+      ``roi`` is the region-of-interest rectangle tuple (x, y, w, h). If not
+      specified, it is equal to the image rectangle. Only pixels within the
+      ``roi`` are operated on.
 
-   #    ``x_stride`` is the number of x pixels to skip when doing the hough transform.
-   #    Only increase this if circles you are searching for are large and bulky.
+      ``x_stride`` is the number of x pixels to skip when doing the hough transform.
+      Only increase this if circles you are searching for are large and bulky.
 
-   #    ``y_stride`` is the number of y pixels to skip when doing the hough transform.
-   #    Only increase this if circles you are searching for are large and bulky.
+      ``y_stride`` is the number of y pixels to skip when doing the hough transform.
+      Only increase this if circles you are searching for are large and bulky.
 
-   #    ``threshold`` controls what circles are detected from the hough transform. Only
-   #    circles with a magnitude greater than or equal to ``threshold`` are returned. The
-   #    right value of ``threshold`` for your application is image dependent. Note that
-   #    the magnitude of a circle is the sum of all sobel filter magnitudes of pixels
-   #    that make up that circle.
+      ``threshold`` controls what circles are detected from the hough transform. Only
+      circles with a magnitude greater than or equal to ``threshold`` are returned. The
+      right value of ``threshold`` for your application is image dependent. Note that
+      the magnitude of a circle is the sum of all sobel filter magnitudes of pixels
+      that make up that circle.
 
-   #    ``x_margin`` controls the merging of detected circles. Circles which are
-   #    ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+      ``x_margin`` controls the merging of detected circles. Circles which are
+      ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
 
-   #    ``y_margin`` controls the merging of detected circles. Circles which are
-   #    ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+      ``y_margin`` controls the merging of detected circles. Circles which are
+      ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
 
-   #    ``r_margin`` controls the merging of detected circles. Circles which are
-   #    ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
+      ``r_margin`` controls the merging of detected circles. Circles which are
+      ``x_margin``, ``y_margin``, and ``r_margin`` pixels apart are merged.
 
-   #    ``r_min`` controls the minimum circle radius detected. Increase this to speed
-   #    up the algorithm. Defaults to 2.
+      ``r_min`` controls the minimum circle radius detected. Increase this to speed
+      up the algorithm. Defaults to 2.
 
-   #    ``r_max`` controls the maximum circle radius detected. Decrease this to speed
-   #    up the algorithm. Defaults to min(roi.w/2, roi.h/2).
+      ``r_max`` controls the maximum circle radius detected. Decrease this to speed
+      up the algorithm. Defaults to min(roi.w/2, roi.h/2).
 
-   #    ``r_step`` controls how to step the radius detection by. Defaults to 2.
+      ``r_step`` controls how to step the radius detection by. Defaults to 2.
 
-   #    Not supported on compressed images or bayer images.
+      Not supported on compressed images or bayer images.
 
-   #    This method is not available on the OpenMV Cam M4."""
+      This method is not available on the OpenMV Cam M4."""
 
    # def find_rects(self, [roi: tuple[int, int, int, int]=Auto, [threshold=10000]]) -> Image:"""Find rectangles in the image using the same quad detection algorithm used to
    #    find apriltags. Works best of rectangles that have good contrast against the

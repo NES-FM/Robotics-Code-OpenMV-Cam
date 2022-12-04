@@ -15,7 +15,7 @@ class UART:
             UART(1): (TX, RX) = (P1, P0) = (PB14, PB15)
 
             UART(3): (TX, RX) = (P4, P5) = (PB10, PB11)"""
-    def init(self, baudrate: int, bits: Optional[int], parity: Union[None, bool], stop: Optional[int], timeout: Optional[int], flow: Optional[UART_flow], timeout_char: Optional[int], read_buf_len: Optional[int]) -> None: """Initialise the UART bus with the given parameters:
+    def init(self, baudrate: int, bits: Optional[int] = ..., parity: Union[None, bool] = ..., stop: Optional[int] = ..., timeout: Optional[int] = ..., flow: Optional[UART_flow] = ..., timeout_char: Optional[int] = ..., read_buf_len: Optional[int] = ...) -> None: """Initialise the UART bus with the given parameters:
 
             baudrate is the clock rate.
 
@@ -38,7 +38,7 @@ class UART:
     Note: with parity=None, only 8 and 9 bits are supported. With parity enabled, only 7 and 8 bits are supported."""
     def deinit(self) -> None: "Turn off the UART bus."
     def any(self) -> int: "Returns the number of bytes waiting (may be 0)."
-    def read(self, nbytes: Optional[int]) -> Union[None, bytes]: """Read characters. If nbytes is specified then read at most that many bytes. If nbytes are available in the buffer, returns immediately, otherwise returns when sufficient characters arrive or the timeout elapses.
+    def read(self, nbytes: Optional[int] = ...) -> Union[None, bytes]: """Read characters. If nbytes is specified then read at most that many bytes. If nbytes are available in the buffer, returns immediately, otherwise returns when sufficient characters arrive or the timeout elapses.
 
     If nbytes is not given then the method reads as much data as possible. It returns after the timeout has elapsed.
 
@@ -48,13 +48,13 @@ class UART:
     def readchar(self) -> int: """Receive a single character on the bus.
 
     Return value: The character read, as an integer. Returns -1 on timeout."""
-    def readinto(self, buf: bytearray, nbytes: Optional[int]) -> Union[int, None]: """Read bytes into the buf. If nbytes is specified then read at most that many bytes. Otherwise, read at most len(buf) bytes.
+    def readinto(self, buf: bytes, nbytes: Optional[int] = ...) -> Union[int, None]: """Read bytes into the buf. If nbytes is specified then read at most that many bytes. Otherwise, read at most len(buf) bytes.
 
     Return value: number of bytes read and stored into buf or None on timeout."""
     def readline(self) -> bytes: """Read a line, ending in a newline character. If such a line exists, return is immediate. If the timeout elapses, all available data is returned regardless of whether a newline exists.
 
     Return value: the line read or None on timeout if no data is available."""
-    def write(self, buf: bytearray) -> None: """Write the buffer of bytes to the bus. If characters are 7 or 8 bits wide then each byte is one character. If characters are 9 bits wide then two bytes are used for each character (little endian), and buf must contain an even number of bytes.
+    def write(self, buf: bytes) -> None: """Write the buffer of bytes to the bus. If characters are 7 or 8 bits wide then each byte is one character. If characters are 9 bits wide then two bytes are used for each character (little endian), and buf must contain an even number of bytes.
 
     Return value: number of bytes written. If a timeout occurs and no bytes were written returns None."""
     def writechar(self, char: int) -> None: "Write a single character on the bus. char is an integer to write. Return value: None. See note below if CTS flow control is used."
