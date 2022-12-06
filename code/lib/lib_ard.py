@@ -49,10 +49,13 @@ class ard_comm(metaclass=ABCMeta):
         self._send_data(data + self.end_line_char)
         
     def send_gray_data(self):
-        self.answer_data(self.pack_balls())
-        self.answer_data(self.pack_corner())
+        if len(self.balls_dict) > 0:
+            self.answer_data(self.pack_balls())
+        if len(self.corner_dict) > 0:
+            self.answer_data(self.pack_corner())
     def send_rgb_data(self):
-        self.answer_data(self.pack_exit_line())
+        if len(self.exit_line_dict) > 0:
+            self.answer_data(self.pack_exit_line())
     
     def interpret_data(self, data: bytes):
         opcode = data[0]
@@ -135,9 +138,9 @@ if __name__ == '__main__':
     mycl.send_gray_data()
     mycl.send_rgb_data()
     
-    # print(mycl.pack_balls()) # 0x10 0x2 0x0 0x0 0xc 0xc 0x5d 0x1 0x2d 0x17 0xc 0xc 0x4e 0x0 0xff
-    # print(mycl.pack_corner())
-    # print(mycl.pack_exit_line())
+    # print(mycl.pack_balls()) # 0x10 0x02 0x00 0x00 0x0c 0x0c 0x5d 0x01 0x2d 0x17 0x0c 0x0c 0x4e 0x00 0xff
+    # print(mycl.pack_corner()) # 0x11 0x0c 0x14 0xc8 0x1e 0x63 0xff
+    # print(mycl.pack_exit_line()) # 0x12 0x78 0xc8 0x82 0x0a 0x64 0xff
 
     
     
@@ -163,7 +166,7 @@ int main()
     
     for (int i = 0; i < len; i++)
     {
-        memcpy(&rec_balls[i], &rec_bytes[(i*6)+1], 6);
+        memcpy(&rec_balls[i], &rec_bytes[(i*sizeof(ball))+1], sizeof(ball));
     }
     
     //printf("len: %d ptrballs%d ptrbytes%d ptrball2s%d ptrbyte2s%d\n", len, &rec_balls, &(rec_bytes), &rec_balls[0], &rec_bytes[1]);
