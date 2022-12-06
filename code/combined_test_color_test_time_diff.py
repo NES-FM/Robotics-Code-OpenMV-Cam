@@ -111,6 +111,17 @@ def black_white_handler():
     # Only keep highest confidence corner
     for key, _ in sorted(corner.items(), key=lambda x:x[1]["conf"])[:-1]:
         corner.pop(key)
+    """In Honor of ChatGPT for coming up with a more efficient, but more unreadable solution:
+    # Find the key with the maximum "conf" value in the dictionary
+    max_key = max(corner, key=lambda x: corner[x]["conf"])
+
+    # Use the key to find the corresponding key-value pair in the dictionary
+    max_pair = corner[max_key]
+
+    # Remove all other key-value pairs from the dictionary
+    corner.clear()
+    corner[max_key] = max_pair
+    """
                 
     # Additional Informations + result for each ball
     for rec, data in balls.copy().items():
@@ -131,7 +142,7 @@ def black_white_handler():
         certain = False
         if histogram_classification == classified_as:
             certain = True
-        conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(data["circles"])>0))# + min((stdev / 50)*0.25, 0.25)
+        conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(data["circles"])==0))# + min((stdev / 50)*0.25, 0.25)
 
         balls[rec]["conf"] = conf
         balls[rec]["histo_class"] = histogram_classification
