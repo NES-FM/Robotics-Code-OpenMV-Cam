@@ -1,8 +1,6 @@
-from abc import abstractmethod, ABCMeta
-from typing import Callable, Any, Union
-from struct import unpack, pack
+from ustruct import unpack, pack
 
-class ard_comm(metaclass=ABCMeta):
+class ard_comm:
     def __init__(self, balls_dict: dict, corner_dict: dict, exit_line_dict: dict):
         self.balls_dict = balls_dict
         self.corner_dict = corner_dict
@@ -24,21 +22,17 @@ class ard_comm(metaclass=ABCMeta):
         
         self._init_comm()
         
-    def register_handler(self, opcode: int, func: Callable[[bytes], Union[bytes, None]]):
+    def register_handler(self, opcode: int, func):
         self.data_handlers[opcode] = func
     
-    @abstractmethod
     def _init_comm(self) -> None:
         pass
-    @abstractmethod
     def _send_data(self, data: bytes) -> None:
         pass
-    @abstractmethod
     def _receive_data(self) -> bytes:
-        pass
-    @abstractmethod
+        return bytes()
     def is_data_available(self) -> bool:
-        pass
+        return False
     
     def tick(self):
         if self.is_data_available():
