@@ -1,4 +1,4 @@
-from typing import Any, Union, Optional#, Callable
+from typing import Any, Union, Optional, Callable
 from typing_extensions import TypeAlias
 from sensor import Pixformat, Color_palette
 
@@ -577,6 +577,8 @@ class blob:
    def enclosed_ellipse(self) -> tuple[int, int, int, int, float]:"""Returns an ellipse tuple (x, y, rx, ry, rotation) that can be drawn with `image.draw_ellipse()`
       of the ellipse that fits inside of the min area rectangle of a blob."""
    def __iter__(self) -> Any: pass
+   
+   def output(self) -> int: "Only valid in the context of tf.detect()"
 
 class line:
    """The line object is returned by `image.find_lines()`, `image.find_line_segments()`, or `image.get_regression()`.
@@ -3236,7 +3238,7 @@ class Image:
 
    #    Not supported on compressed images or bayer images."""
 
-   def find_blobs(self, thresholds: Union[list[tuple[int, int]], list[tuple[int, int, int, int, int, int]]], invert=False, roi:tuple[int, int, int, int]=..., x_stride=2, y_stride=1, area_threshold=10, pixels_threshold=10, merge=False, margin=0, threshold_cb=None, merge_cb=None, x_hist_bins_max=0, y_hist_bins_max=0) -> blob:
+   def find_blobs(self, thresholds: Union[list[tuple[int, int]], list[tuple[int, int, int, int, int, int]]], invert:bool=..., roi:tuple[int, int, int, int]=..., x_stride:int=..., y_stride:int=..., area_threshold:int=..., pixels_threshold:int=..., merge:int=..., margin:int=..., threshold_cb:Callable[[blob], bool]=..., merge_cb:Callable[[blob], bool]=..., x_hist_bins_max:int=..., y_hist_bins_max:int=...) -> blob:
 
       """Finds all blobs (connected pixel regions that pass a threshold test) in the
       image and returns a list of `image.blob` objects which describe each blob.

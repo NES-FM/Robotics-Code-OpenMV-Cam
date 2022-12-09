@@ -1,0 +1,2 @@
+from typing import Optional
+def disable_fb(disable:bool=...) -> Optional[bool]: "When disable is set to True the OpenMV Cam will no longer jpeg compress images and stream them to OpenMV IDE. The IDE may still poll for images unless Disable FB is checked in OpenMV IDE. You may wish to disable the frame buffer when streaming images over to another system while debugging you script with OpenMV IDE. If no arguments are passed this function will return True if the frame buffer is disabled and False if not."
