@@ -578,7 +578,7 @@ class blob:
       of the ellipse that fits inside of the min area rectangle of a blob."""
    def __iter__(self) -> Any: pass
    
-   def output(self) -> int: "Only valid in the context of tf.detect()"
+   def output(self) -> float: "Only valid in the context of tf.detect()"
 
 class line:
    """The line object is returned by `image.find_lines()`, `image.find_line_segments()`, or `image.get_regression()`.

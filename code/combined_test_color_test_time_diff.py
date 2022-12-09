@@ -1,7 +1,7 @@
 import sensor, time, tf, math, gc, omv
 import uos
 from image import Image
-from lib import lib_ard
+from lib import lib_ard, lib_objects
 
 ### CONFIG
 OMV_DEBUG = True # Whether to show framebuffer in OpenMV IDE or not
@@ -23,10 +23,10 @@ black_white = True
 net: tf.tf_model
 labels = None
 
-balls = {}
-corner = {}
-exit_line = {}
-ard_comm = lib_ard.ard_comm_uart(balls, corner, exit_line)
+balls: list[lib_objects.ball] = []
+corner = lib_objects.corner().init(reset=True)
+exit_line = lib_objects.exit_line().init(reset=True)
+ard_comm = lib_ard.ard_comm_uart()
 img: Image
 ### ENDGLOBAL
 
@@ -67,20 +67,22 @@ def init_colors():
     global colors
     for i in range(0, 15):
         if i == black_ball_id:
-            colors.append((255, 0,   0  ))  # type:ignore
+            colors.append((255, 0,   0  )) 
         elif i == exit_line_id:
-            colors.append((0,   0,   255))  # type:ignore
+            colors.append((0,   0,   255)) 
         elif i == silver_ball_id:
-            colors.append((0,   255, 0  ))  # type:ignore
+            colors.append((0,   255, 0  )) 
         elif i == corner_id:
-            colors.append((255, 255, 0  ))  # type:ignore
+            colors.append((255, 255, 0  )) 
         else:
-            colors.append((0, 0, 0))  # type:ignore
+            colors.append((0, 0, 0)) 
 
 def black_white_handler():
     global balls, corner, img
     balls.clear()
-    corner.clear()
+    corner.init(reset=True)
+    
+    temp_corner_list: list[lib_objects.corner] = []
 
     # Tensorflow detection
     for i, detection_list in enumerate(net.detect(img, thresholds=[(math.ceil(min_confidence * 255), 255)])):
@@ -89,17 +91,18 @@ def black_white_handler():
 
         for d in detection_list:
             if i == black_ball_id:  # black ball
-                balls[d.rect()] = {"classified_as": "black", "value": d.output(), "circles": [], "histogram": img.get_histogram(roi=d.rect()), "conf": -1, "histo_class": "unknown"}
-            elif i == corner_id:  # corner
-                corner[d.rect()] = {"classified_as": "corner", "value": d.output(), "circles": [], "histogram": img.get_histogram(roi=d.rect()), "blob": None}
+                balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
             elif i == silver_ball_id:  # silver_ball
-                balls[d.rect()] = {"classified_as": "silver", "value": d.output(), "circles": [], "histogram": img.get_histogram(roi=d.rect()), "conf": -1, "histo_class": "unknown"}
+                balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
+            elif i == corner_id:  # corner
+                temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
                 
     # For every ball found, search for circles within the area
-    for (x, y, w, h), data in balls.copy().items(): # type:ignore
-        sx, sy, sw, sh = x-16, y-16, w+32, h+32 # type:ignore
-        for c in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = 5, r_max = min(sw, sh), r_step = 1): # type:ignore
-            balls[(x, y, w, h)]["circles"].append(c) # type:ignore
+    for ball in balls:
+        x, y, w, h = ball.get_screen_rect()
+        sx, sy, sw, sh = x-16, y-16, w+32, h+32
+        for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = 5, r_max = min(sw, sh), r_step = 1):
+            ball.circles_detected.append(circle)
             
     # Search for black blobs as corners:
     for b in img.find_blobs([(0, 17)], merge=True, margin=5):
@@ -107,82 +110,75 @@ def black_white_handler():
         if b.pixels() > 2000: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
             conf = ((1-b.roundness()) * 0.5) + (b.elongation() * 0.5)
             if conf > 0.8:
-                corner[b.rect()] = {"classified_as": "corner", "value": 1, "circles": [], "histogram": img.get_histogram(roi=b.rect()), "blob": b, "conf": conf}
+                temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
                 print(f"Corner:Blob x{x} y{y} w{w} h{h} conf{conf} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
     # Only keep highest confidence corner
-    for key, _ in sorted(corner.items(), key=lambda x:x[1]["conf"])[:-1]: # type:ignore
-        corner.pop(key) # type:ignore
-    """In Honor of ChatGPT for coming up with a more efficient, but more unreadable solution:
-    # Find the key with the maximum "conf" value in the dictionary
-    max_key = max(corner, key=lambda x: corner[x]["conf"])
+    corner = max(temp_corner_list, key=lambda x: x.confidence)
 
-    # Use the key to find the corresponding key-value pair in the dictionary
-    max_pair = corner[max_key]
-
-    # Remove all other key-value pairs from the dictionary
-    corner.clear()
-    corner[max_key] = max_pair
-    """
-                
     # Additional Informations + result for each ball
-    for rec, data in balls.copy().items(): # type:ignore
-        v = data["value"] # type:ignore
-        x, y, w, h = rec # type:ignore
+    for ball in balls:
+        v = ball.classification_value
+        x, y, w, h = ball.get_screen_rect()
 
-        stdev = data["histogram"].get_statistics().stdev() # type:ignore
-        #mean = data["histogram"].get_statistics().mean()
-        #median = data["histogram"].get_statistics().median()
-        mode = mean = data["histogram"].get_statistics().mode() # type:ignore
+        stdev = ball.histogram.get_statistics().stdev()
+        mode = ball.histogram.get_statistics().mode()
 
-        classified_as = data["classified_as"] # type:ignore
-        histogram_classification = ""
+        classified_as = ball.classified_as
+        histogram_classification = False
+        
         if mode > 100:
-            histogram_classification = "silver"
+            histogram_classification = ball.SILVER
         else:
-            histogram_classification = "black"
+            histogram_classification = ball.BLACK
+            
         certain = False
+        
         if histogram_classification == classified_as:
             certain = True
-        conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(data["circles"])==0)) # type:ignore
+            
+        conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(ball.circles_detected)==1))
 
-        balls[rec]["conf"] = conf # type:ignore
-        balls[rec]["histo_class"] = histogram_classification # type:ignore
+        ball.confidence = conf
+        ball.histogram_classification = histogram_classification
 
-        print(f"Ball: Class:{classified_as} HistoClass:{histogram_classification} x{x} y{y} w{w} h{h} v{v:.3} StDev{stdev} Mode{mode} Confidence{conf}=(0.5 * {v}) + (0.2 * {certain}) + (0.3 * ({len(data['circles'])}>0))") # type:ignore
+        print(f"Ball: Class:{classified_as} HistoClass:{histogram_classification} x{x} y{y} w{w} h{h} v{v:.3} StDev{stdev} Mode{mode} Confidence{conf}=(0.5 * {v}) + (0.2 * {certain}) + (0.3 * ({len(ball.circles_detected)}==1))")
 
 def rgb_handler():
     global exit_line, img
-    exit_line.clear()
+    exit_line.init(reset=True)
+    
+    temp_exit_line_list: list[lib_objects.exit_line] = []
 
     # Search for green blobs as Exit Lines:
     for b in img.find_blobs([(16, 28, -17, -7, 0, 13)], merge=True, margin=2):
         (x, y, w, h) = b.rect()
-        exit_line[b.rect()] = {"classified_as": "exit", "value": 1, "circles": [], "histogram": img.get_histogram(roi=b.rect()), "blob": b, "conf": 1}
+        conf = 1.0
+        temp_exit_line_list.append( lib_objects.exit_line().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf ))
         print(f"Exit: x{x} y{y} w{w} h{h} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
     # Only keep highest confidence line
-    for key, _ in sorted(exit_line.items(), key=lambda x:x[1]["conf"])[:-1]: # type:ignore
-        exit_line.pop(key) # type:ignore
+    exit_line = max(temp_exit_line_list, key=lambda x: x.confidence)
 
 def drawing_handler():
     global balls, corner, exit_line, img
 
     # Draw Balls
-    for (x, y, w, h), data in balls.items(): # type:ignore
-        classified_as = data["classified_as"] # type:ignore
+    for ball in balls:
+        x, y, w, h = ball.get_screen_rect()
+        classified_as = ball.classified_as
         color = 0
-        if classified_as == "black":
+        if classified_as == ball.BLACK:
             color = black_ball_id
         else:
             color = silver_ball_id
-        img.draw_rectangle(x, y, w, h, colors[color], 1, False) # type:ignore
-        for c in data["circles"]: # type:ignore
-            img.draw_circle(c.x(), c.y(), c.r(), color = colors[color]) # type:ignore
+        img.draw_rectangle(x, y, w, h, colors[color], 1, False)
+        for c in ball.circles_detected:
+            img.draw_circle(c.x(), c.y(), c.r(), color = colors[color])
     # Draw Corner
-    for (x, y, w, h), data in corner.items(): # type:ignore
-        img.draw_rectangle(x, y, w, h, colors[corner_id], 1, False) # type:ignore
+    if corner.valid:
+        img.draw_rectangle(*corner.get_screen_rect(), colors[corner_id], 1, False)
     # Draw Exit Line
-    for (x, y, w, h), data in exit_line.items(): # type:ignore
-        img.draw_rectangle(x, y, w, h, colors[exit_line_id], 1, False) # type:ignore
+    if exit_line.valid:
+        img.draw_rectangle(*exit_line.get_screen_rect(), colors[exit_line_id], 1, False)
 
 if __name__ == '__main__':
     clock = time.clock()
@@ -200,17 +196,20 @@ if __name__ == '__main__':
             sensor.set_pixformat(sensor.GRAYSCALE)
             img = sensor.snapshot()
             black_white_handler()
-            ard_comm.send_gray_data()
+            ard_comm.send_gray_data(balls, corner)
             if OMV_DEBUG:
                 omv.disable_fb(True)
         else:
             sensor.set_pixformat(sensor.RGB565)
             img = sensor.snapshot()
             rgb_handler()
-            ard_comm.send_rgb_data()
+            ard_comm.send_rgb_data(exit_line)
             if OMV_DEBUG:
                 drawing_handler()
                 omv.disable_fb(False)
+
         black_white = not black_white
+        
+        ard_comm.tick()
 
         print(clock.fps(), "fps", end="\n\n")
