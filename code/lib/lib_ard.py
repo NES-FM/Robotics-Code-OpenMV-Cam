@@ -1,31 +1,30 @@
 from ustruct import unpack, pack
-import lib_objects
 
 class ard_comm:
     def __init__(self):
-        self.balls_list: list[lib_objects.ball]
-        self.corner: lib_objects.corner
-        self.exit_line: lib_objects.exit_line
-        
+        self.balls_list=[]
+        self.corner=None
+        self.exit_line=None
+
         self.heartbeat_id = 0x01
         self.balls_id = 0x10
         self.corner_id = 0x11
         self.exit_line_id = 0x12
-        
+
         self.data_handlers = {}
         self.register_handler(self.heartbeat_id, self.heartbeat_handler)
         self.register_handler(self.balls_id, self.pack_balls)
         self.register_handler(self.corner_id, self.pack_corner)
         self.register_handler(self.exit_line_id, self.pack_exit_line)
-        
+
         self.answer_unknown_opcode = b'\xfe'
         self.end_line_char = b'\xff'
-        
+
         self._init_comm()
-        
+
     def register_handler(self, opcode: int, func):
         self.data_handlers[opcode] = func
-    
+
     def _init_comm(self) -> None:
         pass
     def _send_data(self, data: bytes) -> None:
@@ -34,27 +33,27 @@ class ard_comm:
         return bytes()
     def is_data_available(self) -> bool:
         return False
-    
+
     def tick(self):
         if self.is_data_available():
             data = self._receive_data()
             self.interpret_data(data)
-            
+
     def answer_data(self, data: bytes):
         self._send_data(data + self.end_line_char)
-        
-    def send_gray_data(self, balls_list: list[lib_objects.ball], corner: lib_objects.corner):
+
+    def send_gray_data(self, balls_list, corner):
         self.balls_list=balls_list
         self.corner=corner
         if len(self.balls_list) > 0:
             self.answer_data(self.pack_balls())
         if self.corner.valid:
             self.answer_data(self.pack_corner())
-    def send_rgb_data(self, exit_line: lib_objects.exit_line):
+    def send_rgb_data(self, exit_line):
         self.exit_line=exit_line
         if self.exit_line.valid:
             self.answer_data(self.pack_exit_line())
-    
+
     def interpret_data(self, data: bytes):
         opcode = data[0]
         params = data[1:]
@@ -65,31 +64,31 @@ class ard_comm:
                 self.answer_data(ret)
         else:
             self.answer_data(self.answer_unknown_opcode)
-            
+
     def heartbeat_handler(self, params: bytes) -> bytes:
         return pack("<B", self.heartbeat_id) + params
-    
+
     def pack_balls(self, params = None) -> bytes:
         ret_data = pack("<B", self.balls_id)
 
         ret_data += pack("<B", len(self.balls_list))
         for ball in self.balls_list:
             ret_data += pack("<BBBBBB", ball.screen_x, ball.screen_y, ball.screen_w, ball.screen_h, int(ball.confidence*100), ball.classified_as == ball.BLACK) # x y w h c*100 class=black
-                    
+
         return ret_data
-    
+
     def pack_corner(self, params = None) -> bytes:
         x, y, w, h = self.corner.get_screen_rect()
         return pack("<BBBBBB", self.corner_id, x, y, w, h, int(self.corner.confidence*100))
-    
+
     def pack_exit_line(self, params = None) -> bytes:
         x, y, w, h = self.exit_line.get_screen_rect()
         return pack("<BBBBBB", self.exit_line_id, x, y, w, h, int(self.exit_line.confidence*100))
-    
+
 class ard_comm_uart(ard_comm):
     def _init_comm(self) -> None:
         from pyb import UART
-        
+
         self.uart = UART(1)
         self.uart.init(115200, bits=8, parity=None)
     def is_data_available(self) -> bool:
@@ -105,7 +104,7 @@ class ard_comm_uart(ard_comm):
             if byte_rec == self.end_line_char:
                 break
         return rec_data
-    
+
 # class ard_comm_local_test(ard_comm):
 #     def _init_comm(self) -> None:
 #         print("[COMM] Initializing Communication")
@@ -120,28 +119,28 @@ class ard_comm_uart(ard_comm):
 #     def is_data_available(self) -> bool:
 #         print("[COMM] Is Data Available: True")
 #         return True
-    
-        
+
+
 # if __name__ == '__main__':
     # balls = {(0, 0, 12, 12): {"classified_as": "black", "value": 0.7, "circles": [], "conf": 0.934, "histo_class": "silver"}, (45, 23, 12, 12): {"classified_as": "silver", "value": 0.6, "circles": [], "conf": 0.78, "histo_class": "silver"}}
     # corner = {(12, 20, 200, 30): {"classified_as": "corner", "value": 1, "circles": [], "conf": 0.994}}
     # exit_line = {(120, 200, 130, 10): {"classified_as": "exit", "value": 1, "circles": [], "conf": 1}}
 
     # mycl = ard_comm_local_test(balls_list = balls, corner_dict = corner, exit_line_dict = exit_line)
-    
+
     # mycl.tick()
-    
+
     # print("")
-    
+
     # mycl.send_gray_data()
     # mycl.send_rgb_data()
-    
+
     # print(mycl.pack_balls()) # 0x10 0x02 0x00 0x00 0x0c 0x0c 0x5d 0x01 0x2d 0x17 0x0c 0x0c 0x4e 0x00 0xff
     # print(mycl.pack_corner()) # 0x11 0x0c 0x14 0xc8 0x1e 0x63 0xff
     # print(mycl.pack_exit_line()) # 0x12 0x78 0xc8 0x82 0x0a 0x64 0xff
 
-    
-    
+
+
 # """
 # C Code for interpreting received Data
 
@@ -161,14 +160,14 @@ class ard_comm_uart(ard_comm):
 # int main()
 # {
 #     uint8_t len = rec_bytes[0];
-    
+
 #     for (int i = 0; i < len; i++)
 #     {
 #         memcpy(&rec_balls[i], &rec_bytes[(i*sizeof(ball))+1], sizeof(ball));
 #     }
-    
+
 #     //printf("len: %d ptrballs%d ptrbytes%d ptrball2s%d ptrbyte2s%d\n", len, &rec_balls, &(rec_bytes), &rec_balls[0], &rec_bytes[1]);
-    
+
 #     for (ball b : rec_balls) {
 #         printf("Ball: x%d y%d w%d h%d c%d %s\n", b.x, b.y, b.w, b.h, b.conf, b.black ? "black" : "silver");
 #     }

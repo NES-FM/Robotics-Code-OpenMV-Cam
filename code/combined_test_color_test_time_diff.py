@@ -7,6 +7,8 @@ from lib import lib_ard, lib_objects
 OMV_DEBUG = True # Whether to show framebuffer in OpenMV IDE or not
 min_confidence = 0.4 # Min Config for TensorFlow Detection
 circle_thresh = 1800 # Detection Threshold for circle detection
+circle_det_rad = 20
+X_OFFSET_WINDOWING = 40  # Range: 0-80
 ### ENDCONFIG
 
 ### GLOBAL VARIABLES
@@ -32,11 +34,13 @@ img: Image
 
 def init_sensor():
     omv.disable_fb(True)
-    
+
     sensor.reset()                         # Reset and initialize the sensor.
     sensor.set_pixformat(sensor.RGB565)    # Set pixel format to RGB565 (or GRAYSCALE)
     sensor.set_framesize(sensor.QVGA)      # Set frame size to QVGA (320x240)
-    sensor.set_windowing((240, 240))        # Set 240x240 window.
+    sensor.set_vflip(True)
+    sensor.set_hmirror(True)
+    sensor.set_windowing((X_OFFSET_WINDOWING, 0, 240, 240))        # Set 240x240 window.
     sensor.skip_frames(time=500)          # Let the camera adjust.
 
 def load_tf_models():
@@ -67,21 +71,21 @@ def init_colors():
     global colors
     for i in range(0, 15):
         if i == black_ball_id:
-            colors.append((255, 0,   0  )) 
+            colors.append((255, 0,   0  ))
         elif i == exit_line_id:
-            colors.append((0,   0,   255)) 
+            colors.append((0,   0,   255))
         elif i == silver_ball_id:
-            colors.append((0,   255, 0  )) 
+            colors.append((0,   255, 0  ))
         elif i == corner_id:
-            colors.append((255, 255, 0  )) 
+            colors.append((255, 255, 0  ))
         else:
-            colors.append((0, 0, 0)) 
+            colors.append((0, 0, 0))
 
 def black_white_handler():
     global balls, corner, img
     balls.clear()
     corner.init(reset=True)
-    
+
     temp_corner_list: list[lib_objects.corner] = []
 
     # Tensorflow detection
@@ -96,24 +100,26 @@ def black_white_handler():
                 balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
             elif i == corner_id:  # corner
                 temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
-                
+
     # For every ball found, search for circles within the area
     for ball in balls:
         x, y, w, h = ball.get_screen_rect()
-        sx, sy, sw, sh = x-16, y-16, w+32, h+32
+        sx, sy, sw, sh = x-circle_det_rad, y-circle_det_rad, w+2*circle_det_rad, h+2*circle_det_rad
+        ball.set_screen_det_rad(sx, sy, sw, sh)
         for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = 5, r_max = min(sw, sh), r_step = 1):
             ball.circles_detected.append(circle)
-            
+
     # Search for black blobs as corners:
-    for b in img.find_blobs([(0, 17)], merge=True, margin=5):
+    for b in img.find_blobs([(0, 25)], merge=True, margin=5):
         (x, y, w, h) = b.rect()
-        if b.pixels() > 2000: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
+        if b.pixels() > 1000: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
             conf = ((1-b.roundness()) * 0.5) + (b.elongation() * 0.5)
-            if conf > 0.8:
-                temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
-                print(f"Corner:Blob x{x} y{y} w{w} h{h} conf{conf} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
+            #if conf > 0.8:
+            temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
+            print(f"Corner:Blob x{x} y{y} w{w} h{h} conf{conf} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
     # Only keep highest confidence corner
-    corner = max(temp_corner_list, key=lambda x: x.confidence)
+    if len(temp_corner_list) > 0:
+        corner = max(temp_corner_list, key=lambda x: x.confidence)
 
     # Additional Informations + result for each ball
     for ball in balls:
@@ -125,17 +131,17 @@ def black_white_handler():
 
         classified_as = ball.classified_as
         histogram_classification = False
-        
+
         if mode > 100:
             histogram_classification = ball.SILVER
         else:
             histogram_classification = ball.BLACK
-            
+
         certain = False
-        
+
         if histogram_classification == classified_as:
             certain = True
-            
+
         conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(ball.circles_detected)==1))
 
         ball.confidence = conf
@@ -146,7 +152,7 @@ def black_white_handler():
 def rgb_handler():
     global exit_line, img
     exit_line.init(reset=True)
-    
+
     temp_exit_line_list: list[lib_objects.exit_line] = []
 
     # Search for green blobs as Exit Lines:
@@ -156,7 +162,8 @@ def rgb_handler():
         temp_exit_line_list.append( lib_objects.exit_line().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf ))
         print(f"Exit: x{x} y{y} w{w} h{h} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
     # Only keep highest confidence line
-    exit_line = max(temp_exit_line_list, key=lambda x: x.confidence)
+    if len(temp_exit_line_list)>0:
+        exit_line = max(temp_exit_line_list, key=lambda x: x.confidence)
 
 def drawing_handler():
     global balls, corner, exit_line, img
@@ -171,24 +178,25 @@ def drawing_handler():
         else:
             color = silver_ball_id
         img.draw_rectangle(x, y, w, h, colors[color], 1, False)
+        img.draw_rectangle(ball.get_screen_det_rad(), colors[color], 1, False)
         for c in ball.circles_detected:
             img.draw_circle(c.x(), c.y(), c.r(), color = colors[color])
     # Draw Corner
     if corner.valid:
-        img.draw_rectangle(*corner.get_screen_rect(), colors[corner_id], 1, False)
+        img.draw_rectangle(corner.get_screen_rect(), colors[corner_id], 1, False)
     # Draw Exit Line
     if exit_line.valid:
-        img.draw_rectangle(*exit_line.get_screen_rect(), colors[exit_line_id], 1, False)
+        img.draw_rectangle(exit_line.get_screen_rect(), colors[exit_line_id], 1, False)
 
 if __name__ == '__main__':
     clock = time.clock()
     gc.enable()
-    
+
     init_sensor()
-    
+
     load_tf_models()
     init_colors()
-    
+
     while(True):
         clock.tick()
 
@@ -209,7 +217,7 @@ if __name__ == '__main__':
                 omv.disable_fb(False)
 
         black_white = not black_white
-        
+
         ard_comm.tick()
 
         print(clock.fps(), "fps", end="\n\n")
