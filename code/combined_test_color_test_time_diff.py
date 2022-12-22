@@ -7,8 +7,7 @@ from lib import lib_ard, lib_objects
 OMV_DEBUG = True # Whether to show framebuffer in OpenMV IDE or not
 min_confidence = 0.4 # Min Config for TensorFlow Detection
 circle_thresh = 1800 # Detection Threshold for circle detection
-circle_det_rad = 20
-X_OFFSET_WINDOWING = 40  # Range: 0-80
+X_OFFSET_WINDOWING = 70  # Range: 0-80
 ### ENDCONFIG
 
 ### GLOBAL VARIABLES
@@ -31,6 +30,23 @@ exit_line = lib_objects.exit_line().init(reset=True)
 ard_comm = lib_ard.ard_comm_uart()
 img: Image
 ### ENDGLOBAL
+
+def map_range(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
+def do_boxes_overlap(box1, box2):
+    x1 = box1[0]
+    y1 = box1[1]
+    x2 = x1 + box1[2]
+    y2 = y1 + box1[3]
+
+    x3 = box2[0]
+    y3 = box2[1]
+    x4 = x3 + box2[2]
+    y4 = y3 + box2[3]
+
+    return (x1 < x4) and (x2 > x3) and (y1 < y4) and (y2 > y3)
 
 def init_sensor():
     omv.disable_fb(True)
@@ -94,26 +110,29 @@ def black_white_handler():
         if (len(detection_list) == 0): continue # no detections for this class?
 
         for d in detection_list:
-            if i == black_ball_id:  # black ball
-                balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
-            elif i == silver_ball_id:  # silver_ball
-                balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
-            elif i == corner_id:  # corner
-                temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
+            if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 56, 70)):  # Make sure that claw doesn't get detected
+                if i == black_ball_id:  # black ball
+                    balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
+                elif i == silver_ball_id:  # silver_ball
+                    balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
+                elif i == corner_id:  # corner
+                    temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
 
     # For every ball found, search for circles within the area
     for ball in balls:
         x, y, w, h = ball.get_screen_rect()
+        circle_det_rad = int(map_range(ball.calculate_distance(), 11, 60, 50, 15))
+        circle_min_rad = int(map_range(ball.calculate_distance(), 11, 60, 20, 4))
         sx, sy, sw, sh = x-circle_det_rad, y-circle_det_rad, w+2*circle_det_rad, h+2*circle_det_rad
         ball.set_screen_det_rad(sx, sy, sw, sh)
-        for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = 5, r_max = min(sw, sh), r_step = 1):
+        for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = circle_min_rad, r_max = min(sw, sh), r_step = 1):
             ball.circles_detected.append(circle)
 
     # Search for black blobs as corners:
-    for b in img.find_blobs([(0, 25)], merge=True, margin=5):
+    for b in img.find_blobs([(0, 34)], merge=True, margin=5):
         (x, y, w, h) = b.rect()
-        if b.pixels() > 1000: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
-            conf = ((1-b.roundness()) * 0.5) + (b.elongation() * 0.5)
+        if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
+            conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
             #if conf > 0.8:
             temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
             print(f"Corner:Blob x{x} y{y} w{w} h{h} conf{conf} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
@@ -181,12 +200,21 @@ def drawing_handler():
         img.draw_rectangle(ball.get_screen_det_rad(), colors[color], 1, False)
         for c in ball.circles_detected:
             img.draw_circle(c.x(), c.y(), c.r(), color = colors[color])
+        img.draw_cross(ball.get_screen_center_point(), colors[color], 3, 1)
+        img.draw_string(x+2, y-9, f"{int(ball.confidence*100)} {int(ball.calculate_distance())}cm", color=colors[color], mono_space=False)
+
     # Draw Corner
     if corner.valid:
-        img.draw_rectangle(corner.get_screen_rect(), colors[corner_id], 1, False)
+        x, y, w, h = corner.get_screen_rect()
+        img.draw_rectangle((x, y, w, h), colors[corner_id], 1, False)
+        img.draw_cross(corner.get_screen_center_point(), colors[corner_id], 3, 1)
+        img.draw_string(x+2, y-9, f"{int(corner.confidence*100)} {int(corner.calculate_distance())}cm", color=colors[corner_id], mono_space=False)
     # Draw Exit Line
     if exit_line.valid:
-        img.draw_rectangle(exit_line.get_screen_rect(), colors[exit_line_id], 1, False)
+        x, y, w, h = exit_line.get_screen_rect()
+        img.draw_rectangle((x, y, w, h), colors[exit_line_id], 1, False)
+        img.draw_cross(exit_line.get_screen_center_point(), colors[exit_line_id], 3, 1)
+        img.draw_string(x+2, y-9, f"{int(exit_line.confidence*100)} {int(exit_line.calculate_distance())}cm", color=colors[exit_line_id], mono_space=False)
 
 if __name__ == '__main__':
     clock = time.clock()

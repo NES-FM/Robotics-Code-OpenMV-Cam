@@ -2,7 +2,7 @@
 
 import sensor, image, time
 
-X_OFFSET_WINDOWING = 40  # Range: 0-80
+X_OFFSET_WINDOWING = 70  # Range: 0-80
 
 sensor.reset()                         # Reset and initialize the sensor.
 sensor.set_pixformat(sensor.RGB565)    # Set pixel format to RGB565 (or GRAYSCALE)

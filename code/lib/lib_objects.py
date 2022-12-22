@@ -43,6 +43,12 @@ class base_object:
     def get_screen_det_rad(self):
         return (self.det_rad_x, self.det_rad_y, self.det_rad_w, self.det_rad_h)
 
+    def get_screen_center_point(self):
+        return (int(self.screen_x+(0.5*self.screen_w)), int(self.screen_y+(0.5*self.screen_h)))
+
+    def calculate_distance(self):
+        return 13656 * (self.get_screen_center_point()[1] ** -1.451)  # see excel
+
 class ball(base_object):
     SILVER = False
     BLACK = True
@@ -64,6 +70,14 @@ class ball(base_object):
 
         self.histogram_classification=histogram_classification
         return super().init(screen_rect, screen_x, screen_y, screen_w, screen_h, confidence, histogram, reset)
+
+    def get_screen_center_point(self):
+        if len(self.circles_detected) == 1:
+            x = self.circles_detected[0].x()
+            y = self.circles_detected[0].y()
+            return (x, y)
+        else:
+            return super().get_screen_center_point()
 
 class corner(base_object):
     def __init__(self) -> None:
