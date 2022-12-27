@@ -1,4 +1,13 @@
 #from image import histogram, blob
+from math import tan, radians
+
+def constrain(i, lower, upper):
+    if i < lower:
+        return lower
+    if i > upper:
+        return upper
+    return i
+
 class base_object:
     def __init__(self) -> None:
         self.screen_x:int
@@ -10,8 +19,11 @@ class base_object:
         self.det_rad_w:int
         self.det_rad_h:int
         self.confidence:float
-        self.histogram:histogram
+        self.histogram:histogram  # type:ignore
         self.valid:bool
+        
+        self.distance = None
+        self.x_offset = None
 
     def init(self, screen_rect=None, screen_x=0, screen_y=0, screen_w=0, screen_h=0, confidence=0.0, histogram=None, reset=False):
         if not isinstance(screen_rect, type(None)):
@@ -46,8 +58,15 @@ class base_object:
     def get_screen_center_point(self):
         return (int(self.screen_x+(0.5*self.screen_w)), int(self.screen_y+(0.5*self.screen_h)))
 
-    def calculate_distance(self):
-        return 13656 * (self.get_screen_center_point()[1] ** -1.451)  # see excel
+    def get_distance(self):
+        if isinstance(self.distance, type(None)):
+            self.distance = constrain(13656.0 * (float(self.get_screen_center_point()[1]) ** -1.451), -32767, 32767)  # see excel
+        return self.distance
+    
+    def get_x_offset(self):
+        if isinstance(self.x_offset, type(None)):
+            self.x_offset = constrain(tan(radians(0.1733* float(self.get_screen_center_point()[0]) - 22.375)) * self.get_distance() + 5, -32767, 32767)
+        return self.x_offset
 
 class ball(base_object):
     SILVER = False
@@ -82,7 +101,7 @@ class ball(base_object):
 class corner(base_object):
     def __init__(self) -> None:
         self.classification_value:float
-        self.blob:blob
+        self.blob:blob  # type:ignore
         self.detected_by_tf:bool
         super().__init__()
 
@@ -95,7 +114,7 @@ class corner(base_object):
 
 class exit_line(base_object):
     def __init__(self) -> None:
-        self.blob:blob
+        self.blob:blob  # type:ignore
         super().__init__()
     def init(self, screen_rect=None, screen_x=0, screen_y=0, screen_w=0, screen_h=0, confidence=0.0, histogram=None, blob=None, reset=False):
         if not isinstance(blob, type(None)):

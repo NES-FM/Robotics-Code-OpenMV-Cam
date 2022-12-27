@@ -8,6 +8,10 @@ OMV_DEBUG = True # Whether to show framebuffer in OpenMV IDE or not
 min_confidence = 0.4 # Min Config for TensorFlow Detection
 circle_thresh = 1800 # Detection Threshold for circle detection
 X_OFFSET_WINDOWING = 70  # Range: 0-80
+
+CORNER_ENABLED = True
+BALLS_ENABLED = True
+EXIT_LINE_ENABLED = False
 ### ENDCONFIG
 
 ### GLOBAL VARIABLES
@@ -99,90 +103,96 @@ def init_colors():
 
 def black_white_handler():
     global balls, corner, img
-    balls.clear()
-    corner.init(reset=True)
+    
+    if BALLS_ENABLED: # or CORNER_ENABLED
+        balls.clear()
+        # Tensorflow detection
+        for i, detection_list in enumerate(net.detect(img, thresholds=[(math.ceil(min_confidence * 255), 255)])):
+            if (i == 0): continue # background class
+            if (len(detection_list) == 0): continue # no detections for this class?
 
-    temp_corner_list: list[lib_objects.corner] = []
+            for d in detection_list:
+                if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 56, 70)):  # Make sure that claw doesn't get detected
+                    if i == black_ball_id:  # black ball
+                        balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
+                    elif i == silver_ball_id:  # silver_ball
+                        balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
+                    # elif i == corner_id:  # corner
+                    #     temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
+                    
+        # For every ball found, search for circles within the area
+        for ball in balls:
+            x, y, w, h = ball.get_screen_rect()
+            circle_det_rad = int(map_range(ball.get_distance(), 11, 60, 50, 15))
+            circle_min_rad = int(map_range(ball.get_distance(), 11, 60, 20, 4))
+            sx, sy, sw, sh = x-circle_det_rad, y-circle_det_rad, w+2*circle_det_rad, h+2*circle_det_rad
+            ball.set_screen_det_rad(sx, sy, sw, sh)
+            for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = circle_min_rad, r_max = min(sw, sh), r_step = 1):
+                ball.circles_detected.append(circle)
+                
+        # Additional Informations + result for each ball
+        for ball in balls:
+            v = ball.classification_value
+            x, y, w, h = ball.get_screen_rect()
 
-    # Tensorflow detection
-    for i, detection_list in enumerate(net.detect(img, thresholds=[(math.ceil(min_confidence * 255), 255)])):
-        if (i == 0): continue # background class
-        if (len(detection_list) == 0): continue # no detections for this class?
+            stdev = ball.histogram.get_statistics().stdev()
+            mode = ball.histogram.get_statistics().mode()
 
-        for d in detection_list:
-            if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 56, 70)):  # Make sure that claw doesn't get detected
-                if i == black_ball_id:  # black ball
-                    balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
-                elif i == silver_ball_id:  # silver_ball
-                    balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.SILVER, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
-                elif i == corner_id:  # corner
-                    temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
+            classified_as = ball.classified_as
+            histogram_classification = False
 
-    # For every ball found, search for circles within the area
-    for ball in balls:
-        x, y, w, h = ball.get_screen_rect()
-        circle_det_rad = int(map_range(ball.calculate_distance(), 11, 60, 50, 15))
-        circle_min_rad = int(map_range(ball.calculate_distance(), 11, 60, 20, 4))
-        sx, sy, sw, sh = x-circle_det_rad, y-circle_det_rad, w+2*circle_det_rad, h+2*circle_det_rad
-        ball.set_screen_det_rad(sx, sy, sw, sh)
-        for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = circle_thresh, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = circle_min_rad, r_max = min(sw, sh), r_step = 1):
-            ball.circles_detected.append(circle)
+            if mode > 100:
+                histogram_classification = ball.SILVER
+            else:
+                histogram_classification = ball.BLACK
 
-    # Search for black blobs as corners:
-    for b in img.find_blobs([(0, 34)], merge=True, margin=5):
-        (x, y, w, h) = b.rect()
-        if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
-            conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
-            #if conf > 0.8:
-            temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
-            print(f"Corner:Blob x{x} y{y} w{w} h{h} conf{conf} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
-    # Only keep highest confidence corner
-    if len(temp_corner_list) > 0:
-        corner = max(temp_corner_list, key=lambda x: x.confidence)
+            certain = False
 
-    # Additional Informations + result for each ball
-    for ball in balls:
-        v = ball.classification_value
-        x, y, w, h = ball.get_screen_rect()
+            if histogram_classification == classified_as:
+                certain = True
 
-        stdev = ball.histogram.get_statistics().stdev()
-        mode = ball.histogram.get_statistics().mode()
+            conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(ball.circles_detected)==1))
 
-        classified_as = ball.classified_as
-        histogram_classification = False
+            ball.confidence = conf
+            ball.histogram_classification = histogram_classification
 
-        if mode > 100:
-            histogram_classification = ball.SILVER
-        else:
-            histogram_classification = ball.BLACK
+            print(f"Ball: Class:{classified_as} HistoClass:{histogram_classification} x{x} y{y} w{w} h{h} x_off{ball.get_x_offset()} dist{ball.get_distance()} v{v:.3} StDev{stdev} Mode{mode} Confidence{conf}=(0.5 * {v}) + (0.2 * {certain}) + (0.3 * ({len(ball.circles_detected)}==1))")
 
-        certain = False
-
-        if histogram_classification == classified_as:
-            certain = True
-
-        conf = (0.5 * v) + (0.2 * certain) + (0.3 * (len(ball.circles_detected)==1))
-
-        ball.confidence = conf
-        ball.histogram_classification = histogram_classification
-
-        print(f"Ball: Class:{classified_as} HistoClass:{histogram_classification} x{x} y{y} w{w} h{h} v{v:.3} StDev{stdev} Mode{mode} Confidence{conf}=(0.5 * {v}) + (0.2 * {certain}) + (0.3 * ({len(ball.circles_detected)}==1))")
+    if CORNER_ENABLED:
+        corner.init(reset=True)
+        temp_corner_list: list[lib_objects.corner] = []
+        # Search for black blobs as corners:
+        for b in img.find_blobs([(0, 34)], merge=True, margin=5):
+            (x, y, w, h) = b.rect()
+            if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
+                conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
+                temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
+        # Only keep highest confidence corner
+        if len(temp_corner_list) > 0:
+            corner = max(temp_corner_list, key=lambda x: x.confidence)
+            x, y, w, h = corner.get_screen_rect()
+            b = corner.blob
+            print(f"Corner: x{x} y{y} w{w} h{h} x_off{corner.get_x_offset()} dist{corner.get_distance()} conf{corner.confidence} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
 
 def rgb_handler():
     global exit_line, img
-    exit_line.init(reset=True)
 
-    temp_exit_line_list: list[lib_objects.exit_line] = []
+    if EXIT_LINE_ENABLED:
+        exit_line.init(reset=True)
+        temp_exit_line_list: list[lib_objects.exit_line] = []
 
-    # Search for green blobs as Exit Lines:
-    for b in img.find_blobs([(16, 28, -17, -7, 0, 13)], merge=True, margin=2):
-        (x, y, w, h) = b.rect()
-        conf = 1.0
-        temp_exit_line_list.append( lib_objects.exit_line().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf ))
-        print(f"Exit: x{x} y{y} w{w} h{h} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
-    # Only keep highest confidence line
-    if len(temp_exit_line_list)>0:
-        exit_line = max(temp_exit_line_list, key=lambda x: x.confidence)
+        # Search for green blobs as Exit Lines:
+        for b in img.find_blobs([(16, 28, -17, -7, 0, 13)], merge=True, margin=2):
+            (x, y, w, h) = b.rect()
+            conf = 1.0
+            temp_exit_line_list.append( lib_objects.exit_line().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf ))
+        # Only keep highest confidence line
+        if len(temp_exit_line_list)>0:
+            exit_line = max(temp_exit_line_list, key=lambda x: x.confidence)
+            x, y, w, h = exit_line.get_screen_rect()
+            b = exit_line.blob
+            print(f"Exit: x{x} y{y} w{w} h{h} x_off{exit_line.get_x_offset()} dist{exit_line.get_distance()} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
+        
 
 def drawing_handler():
     global balls, corner, exit_line, img
@@ -201,20 +211,20 @@ def drawing_handler():
         for c in ball.circles_detected:
             img.draw_circle(c.x(), c.y(), c.r(), color = colors[color])
         img.draw_cross(ball.get_screen_center_point(), colors[color], 3, 1)
-        img.draw_string(x+2, y-9, f"{int(ball.confidence*100)} {int(ball.calculate_distance())}cm", color=colors[color], mono_space=False)
+        img.draw_string(x+2, y-9, f"{int(ball.confidence*100)} {int(ball.get_x_offset())}|{int(ball.get_distance())}", color=colors[color], mono_space=False)
 
     # Draw Corner
     if corner.valid:
         x, y, w, h = corner.get_screen_rect()
         img.draw_rectangle((x, y, w, h), colors[corner_id], 1, False)
         img.draw_cross(corner.get_screen_center_point(), colors[corner_id], 3, 1)
-        img.draw_string(x+2, y-9, f"{int(corner.confidence*100)} {int(corner.calculate_distance())}cm", color=colors[corner_id], mono_space=False)
+        img.draw_string(x+2, y-9, f"{int(corner.confidence*100)} {int(corner.get_x_offset())}|{int(corner.get_distance())}", color=colors[corner_id], mono_space=False)
     # Draw Exit Line
     if exit_line.valid:
         x, y, w, h = exit_line.get_screen_rect()
         img.draw_rectangle((x, y, w, h), colors[exit_line_id], 1, False)
         img.draw_cross(exit_line.get_screen_center_point(), colors[exit_line_id], 3, 1)
-        img.draw_string(x+2, y-9, f"{int(exit_line.confidence*100)} {int(exit_line.calculate_distance())}cm", color=colors[exit_line_id], mono_space=False)
+        img.draw_string(x+2, y-9, f"{int(exit_line.confidence*100)} {int(exit_line.get_x_offset())}|{int(exit_line.get_distance())}", color=colors[exit_line_id], mono_space=False)
 
 if __name__ == '__main__':
     clock = time.clock()
@@ -229,22 +239,30 @@ if __name__ == '__main__':
         clock.tick()
 
         if black_white:
-            sensor.set_pixformat(sensor.GRAYSCALE)
-            img = sensor.snapshot()
-            black_white_handler()
-            ard_comm.send_gray_data(balls, corner)
-            if OMV_DEBUG:
-                omv.disable_fb(True)
+            if BALLS_ENABLED or CORNER_ENABLED:
+                sensor.set_pixformat(sensor.GRAYSCALE)
+                img = sensor.snapshot()
+                black_white_handler()
+                ard_comm.send_gray_data(balls, corner)
+                
+                if OMV_DEBUG:
+                    omv.disable_fb(True)
+                    
+            if EXIT_LINE_ENABLED or OMV_DEBUG:
+                black_white = False
+                
         else:
-            sensor.set_pixformat(sensor.RGB565)
-            img = sensor.snapshot()
-            rgb_handler()
-            ard_comm.send_rgb_data(exit_line)
-            if OMV_DEBUG:
-                drawing_handler()
-                omv.disable_fb(False)
-
-        black_white = not black_white
+            if EXIT_LINE_ENABLED or OMV_DEBUG:
+                sensor.set_pixformat(sensor.RGB565)
+                img = sensor.snapshot()
+                rgb_handler()
+                ard_comm.send_rgb_data(exit_line)
+                if OMV_DEBUG:
+                    drawing_handler()
+                    omv.disable_fb(False)
+                    
+            if BALLS_ENABLED or CORNER_ENABLED:
+                black_white = True
 
         ard_comm.tick()
 

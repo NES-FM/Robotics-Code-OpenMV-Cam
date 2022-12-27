@@ -1976,7 +1976,7 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   def draw_rectangle(self, x:int, y:int, w:int, h:int, color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ..., fill:Optional[bool] = ...) -> Image:"""Draws a rectangle on the image. You may either pass x, y, w, h separately
+   def draw_rectangle(self, xywh_tuple_or_x: Union[int, tuple[int, int, int, int]], y:int=..., w:int=..., h:int=..., color: Optional[Union[int, tuple[int, int, int]]] = ..., thickness: Optional[int] = ..., fill:Optional[bool] = ...) -> Image:"""Draws a rectangle on the image. You may either pass x, y, w, h separately
       or as a tuple (x, y, w, h).
 
       ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
@@ -2021,63 +2021,63 @@ class Image:
 
       Not supported on compressed images or bayer images."""
 
-   # def draw_string(self, x:int, y:int, text, [color, [scale=1, [x_spacing=0, [y_spacing=0, [mono_space=True, [char_rotation=0, [char_hmirror=False, [char_vflip=False,  -> Image:"""rotation=0, [string_hmirror=False, [string_vflip=False]]]]]]]]]]])
+   def draw_string(self, xytuple_or_x:Union[tuple[int, int],int], y:int=..., text:str=..., color: Optional[Union[int, tuple[int, int, int]]] = ..., scale:int=..., x_spacing:int=..., y_spacing:int=..., mono_space:bool=..., char_rotation:int=..., char_hmirror:bool=..., char_vflip:bool=..., string_rotation:int=..., string_hmirror:bool=..., string_vflip:bool=...) -> Image:
 
-   #    Draws 8x10 text starting at location (x, y) in the image. You may either pass
-   #    x, y separately or as a tuple (x, y).
+      """Draws 8x10 text starting at location (x, y) in the image. You may either pass
+      x, y separately or as a tuple (x, y).
 
-   #    ``text`` is a string to write to the image. ``\n``, ``\r``, and ``\r\n``
-   #    line endings move the cursor to the next line.
+      ``text`` is a string to write to the image. ``\n``, ``\r``, and ``\r\n``
+      line endings move the cursor to the next line.
 
-   #    ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
-   #    white. However, you may also pass the underlying pixel value (0-255) for
-   #    grayscale images or a RGB565 value for RGB565 images.
+      ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+      white. However, you may also pass the underlying pixel value (0-255) for
+      grayscale images or a RGB565 value for RGB565 images.
 
-   #    ``scale`` may be increased to increase/decrease the size of the text on the
-   #    image. You can pass greater than 0 integer or floating point values.
+      ``scale`` may be increased to increase/decrease the size of the text on the
+      image. You can pass greater than 0 integer or floating point values.
 
-   #    ``x_spacing`` allows you to add (if positive) or subtract (if negative) x
-   #    pixels between cahracters.
+      ``x_spacing`` allows you to add (if positive) or subtract (if negative) x
+      pixels between cahracters.
 
-   #    ``y_spacing`` allows you to add (if positive) or subtract (if negative) y
-   #    pixels between cahracters (for multi-line text).
+      ``y_spacing`` allows you to add (if positive) or subtract (if negative) y
+      pixels between cahracters (for multi-line text).
 
-   #    ``mono_space`` defaults to True which forces text to be fixed spaced. For
-   #    large text scales this looks terrible. Set the False to get non-fixed width
-   #    character spacing which looks A LOT better.
+      ``mono_space`` defaults to True which forces text to be fixed spaced. For
+      large text scales this looks terrible. Set the False to get non-fixed width
+      character spacing which looks A LOT better.
 
-   #    ``char_rotation`` may be 0, 90, 180, 270 to rotate each character in the
-   #    string by this amount.
+      ``char_rotation`` may be 0, 90, 180, 270 to rotate each character in the
+      string by this amount.
 
-   #    ``char_hmirror`` if True horizontally mirrors all characters in the string.
+      ``char_hmirror`` if True horizontally mirrors all characters in the string.
 
-   #    ``char_vflip`` if True vertically flips all characters in the string.
+      ``char_vflip`` if True vertically flips all characters in the string.
 
-   #    ``string_rotation`` may be 0, 90, 180, 270 to rotate the string by this
-   #    amount.
+      ``string_rotation`` may be 0, 90, 180, 270 to rotate the string by this
+      amount.
 
-   #    ``string_hmirror`` if True horizontally mirrors the string.
+      ``string_hmirror`` if True horizontally mirrors the string.
 
-   #    ``string_vflip`` if True vertically flips the string.
+      ``string_vflip`` if True vertically flips the string.
 
-   #    Returns the image object so you can call another method using ``.`` notation.
+      Returns the image object so you can call another method using ``.`` notation.
 
-   #    Not supported on compressed images or bayer images."""
+      Not supported on compressed images or bayer images."""
 
-   # def draw_cross(self, x:int, y:int, [color, [size=5, [thickness=1]]]) -> Image:"""Draws a cross at location x, y. You may either pass x, y separately or as a
-   #    tuple (x, y).
+   def draw_cross(self, xytuple_or_x:Union[tuple[int, int],int], y:int=..., color:Union[tuple[int, int, int], int]=..., size:int=..., thickness:int=...) -> Image:"""Draws a cross at location x, y. You may either pass x, y separately or as a
+      tuple (x, y).
 
-   #    ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
-   #    white. However, you may also pass the underlying pixel value (0-255) for
-   #    grayscale images or a RGB565 value for RGB565 images.
+      ``color`` is an RGB888 tuple for Grayscale or RGB565 images. Defaults to
+      white. However, you may also pass the underlying pixel value (0-255) for
+      grayscale images or a RGB565 value for RGB565 images.
 
-   #    ``size`` controls how long the lines of the cross extend.
+      ``size`` controls how long the lines of the cross extend.
 
-   #    ``thickness`` controls how thick the edges are in pixels.
+      ``thickness`` controls how thick the edges are in pixels.
 
-   #    Returns the image object so you can call another method using ``.`` notation.
+      Returns the image object so you can call another method using ``.`` notation.
 
-   #    Not supported on compressed images or bayer images."""
+      Not supported on compressed images or bayer images."""
 
    # def draw_arrow(self, x0, y0, x1, y1, [color, [thickness=1]]) -> Image:"""Draws an arrow from (x0, y0) to (x1, y1) on the image. You may
    #    either pass x0, y0, x1, y1 separately or as a tuple (x0, y0, x1, y1).

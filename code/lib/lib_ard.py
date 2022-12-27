@@ -1,4 +1,4 @@
-from ustruct import unpack, pack
+from struct import unpack, pack
 
 class ard_comm:
     def __init__(self):
@@ -73,21 +73,20 @@ class ard_comm:
 
         ret_data += pack("<B", len(self.balls_list))
         for ball in self.balls_list:
-            ret_data += pack("<BBBBBB", ball.screen_x, ball.screen_y, ball.screen_w, ball.screen_h, int(ball.confidence*100), ball.classified_as == ball.BLACK) # x y w h c*100 class=black
+            ret_data += pack("<fffB", ball.get_x_offset(), ball.get_distance(), ball.confidence, ball.classified_as == ball.BLACK) # x_off y_off c*100 class==black
 
         return ret_data
 
     def pack_corner(self, params = None) -> bytes:
-        x, y, w, h = self.corner.get_screen_rect()
-        return pack("<BBBBBB", self.corner_id, x, y, w, h, int(self.corner.confidence*100))
+        return pack("<Bfff", self.corner_id, self.corner.get_x_offset(), self.corner.get_distance(), self.corner.confidence) # type:ignore
 
     def pack_exit_line(self, params = None) -> bytes:
-        x, y, w, h = self.exit_line.get_screen_rect()
-        return pack("<BBBBBB", self.exit_line_id, x, y, w, h, int(self.exit_line.confidence*100))
+        return pack("<Bfff", self.exit_line_id, self.exit_line.get_x_offset(), self.exit_line.get_distance(), self.exit_line.confidence) # type:ignore
 
 class ard_comm_uart(ard_comm):
     def _init_comm(self) -> None:
         from pyb import UART
+
 
         self.uart = UART(1)
         self.uart.init(115200, bits=8, parity=None)
@@ -122,22 +121,20 @@ class ard_comm_uart(ard_comm):
 
 
 # if __name__ == '__main__':
-    # balls = {(0, 0, 12, 12): {"classified_as": "black", "value": 0.7, "circles": [], "conf": 0.934, "histo_class": "silver"}, (45, 23, 12, 12): {"classified_as": "silver", "value": 0.6, "circles": [], "conf": 0.78, "histo_class": "silver"}}
-    # corner = {(12, 20, 200, 30): {"classified_as": "corner", "value": 1, "circles": [], "conf": 0.994}}
-    # exit_line = {(120, 200, 130, 10): {"classified_as": "exit", "value": 1, "circles": [], "conf": 1}}
+#     balls = []
 
-    # mycl = ard_comm_local_test(balls_list = balls, corner_dict = corner, exit_line_dict = exit_line)
+#     mycl = ard_comm_local_test()
 
-    # mycl.tick()
+#     mycl.tick()
 
-    # print("")
+#     print("")
 
-    # mycl.send_gray_data()
-    # mycl.send_rgb_data()
+#     mycl.send_gray_data()
+#     mycl.send_rgb_data()
 
-    # print(mycl.pack_balls()) # 0x10 0x02 0x00 0x00 0x0c 0x0c 0x5d 0x01 0x2d 0x17 0x0c 0x0c 0x4e 0x00 0xff
-    # print(mycl.pack_corner()) # 0x11 0x0c 0x14 0xc8 0x1e 0x63 0xff
-    # print(mycl.pack_exit_line()) # 0x12 0x78 0xc8 0x82 0x0a 0x64 0xff
+#     print(mycl.pack_balls()) # 0x10 0x02 0x00 0x00 0x0c 0x0c 0x5d 0x01 0x2d 0x17 0x0c 0x0c 0x4e 0x00 0xff
+#     print(mycl.pack_corner()) # 0x11 0x0c 0x14 0xc8 0x1e 0x63 0xff
+#     print(mycl.pack_exit_line()) # 0x12 0x78 0xc8 0x82 0x0a 0x64 0xff
 
 
 
