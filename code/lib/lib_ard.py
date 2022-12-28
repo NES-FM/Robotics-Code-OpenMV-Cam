@@ -75,13 +75,13 @@ class ard_comm:
         for ball in self.balls_list:
             ret_data += pack("<fffB", ball.get_x_offset(), ball.get_distance(), ball.confidence, ball.classified_as == ball.BLACK) # x_off y_off c*100 class==black
 
-        return ret_data
+        return ret_data.replace(b'\xff', b'\xfe')
 
     def pack_corner(self, params = None) -> bytes:
-        return pack("<Bfff", self.corner_id, self.corner.get_x_offset(), self.corner.get_distance(), self.corner.confidence) # type:ignore
+        return pack("<Bfff", self.corner_id, self.corner.get_x_offset(), self.corner.get_distance(), self.corner.confidence).replace(b'\xff', b'\xfe') # type:ignore
 
     def pack_exit_line(self, params = None) -> bytes:
-        return pack("<Bfff", self.exit_line_id, self.exit_line.get_x_offset(), self.exit_line.get_distance(), self.exit_line.confidence) # type:ignore
+        return pack("<Bfff", self.exit_line_id, self.exit_line.get_x_offset(), self.exit_line.get_distance(), self.exit_line.confidence).replace(b'\xff', b'\xfe') # type:ignore
 
 class ard_comm_uart(ard_comm):
     def _init_comm(self) -> None:

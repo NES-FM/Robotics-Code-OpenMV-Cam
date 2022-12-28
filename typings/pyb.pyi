@@ -4,6 +4,8 @@ from typing_extensions import TypeAlias
 from pyb_i2c import *
 from pyb_spi import *
 from pyb_uart import *
+from pyb_usbvcp import *
+from pyb_led import *
 
 hid_type: TypeAlias = int
 
@@ -195,7 +197,6 @@ class ADC:
 # class Servo – 3-wire hobby servo driver
 # class Timer – control internal timers
 # class TimerChannel — setup a channel for a timer
-# class UART – duplex serial communication bus
 # class USB_HID – USB Human Interface Device (HID)
 # class USB_VCP – USB virtual comm port
 
