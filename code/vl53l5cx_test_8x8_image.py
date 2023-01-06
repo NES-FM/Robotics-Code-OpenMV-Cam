@@ -8,20 +8,33 @@ import sensor, image, time
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
+sensor.set_vflip(True)
+sensor.set_hmirror(True)
 #sensor.skip_frames(time = 2000)
 sensor.set_windowing((240,240))
 
 def map_range(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
-map_index_to_y_pos = {0: 6,
-                      1: 7,
-                      2: 4,
-                      3: 5,
-                      4: 2,
-                      5: 3,
-                      6: 0,
-                      7: 1}
+#map_index_to_y_pos = {0: 6,
+                      #1: 7,
+                      #2: 4,
+                      #3: 5,
+                      #4: 2,
+                      #5: 3,
+                      #6: 0,
+                      #7: 1}
+
+map_index_to_y_pos = {0: 1,
+                      1: 0,
+                      2: 3,
+                      3: 2,
+                      4: 5,
+                      5: 4,
+                      6: 7,
+                      7: 6}
+
+im240 = image.Image(240, 240, sensor.GRAYSCALE)
 
 def main():
     clock = time.clock()
@@ -57,13 +70,24 @@ def main():
 
             for i, d in enumerate(distance):
                 if status[i] == STATUS_VALID:
-                    img.set_pixel(int(i/8), map_index_to_y_pos[i%8], int(distance[i]/10))
+                    img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i]/10))
                 else:
-                    img.set_pixel(int(i/8), map_index_to_y_pos[i%8], 255)
+                    if (7-int(i/8)) == 0:
+                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i-8]/10))
+                    elif (7-int(i/8)) == 7:
+                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i+8]/10))
+                    else:
+                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int((distance[i-8] + distance[i+8]) / 20))
 
             #print("write 1")
 
-            snpsht.draw_image(img, 100, 140, x_size=280, y_size=280, alpha=100, hint=image.CENTER|image.BILINEAR)
+            im240.draw_image(img, 100, 140, x_size=280, y_size=280, hint=image.CENTER|image.BILINEAR)
+            im240.gaussian(2)
+
+            for i in range(0, 239):
+                print(i, im240.get_pixel(120, i), sep=" ")
+
+            snpsht.draw_image(im240, 0, 0, alpha=100)
             #print("write 2")
             print(clock.fps())
             #print(" ")

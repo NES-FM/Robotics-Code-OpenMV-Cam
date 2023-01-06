@@ -3,11 +3,12 @@ import uos
 from image import Image
 from lib import lib_ard, lib_objects
 from pyb import USB_VCP, LED
+from lib.lib_objects import constrain
 
 ### CONFIG
 DEBUG_IN_IDE = True
 MIN_TF_CONF = 0.4 # Min Config for TensorFlow Detection
-CIRCLE_THRESH = 1800 # Detection Threshold for circle detection
+CIRCLE_THRESH = 1700 # Detection Threshold for circle detection
 X_OFFSET_WINDOWING = 70  # Range: 0-80
 
 CORNER_ENABLED = True
@@ -117,6 +118,23 @@ def blink_led():
 def black_white_handler():
     global balls, corner, img
 
+    if CORNER_ENABLED:
+        corner.init(reset=True)
+        temp_corner_list: list[lib_objects.corner] = []
+        # Search for black blobs as corners:
+        for b in img.find_blobs([(0, 34)], roi=(0, 15, 240, 215), merge=True, margin=5):
+            (x, y, w, h) = b.rect()
+            if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
+                conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
+                if conf > 0.8:
+                    temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
+        # Only keep highest confidence corner
+        if len(temp_corner_list) > 0:
+            corner = max(temp_corner_list, key=lambda x: x.confidence)
+            x, y, w, h = corner.get_screen_rect()
+            b = corner.blob
+            print(f"Corner: x{x} y{y} w{w} h{h} x_off{corner.get_x_offset()} dist{corner.get_distance()} conf{corner.confidence} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
+
     if BALLS_ENABLED: # or CORNER_ENABLED
         balls.clear()
         # Tensorflow detection
@@ -133,15 +151,20 @@ def black_white_handler():
                     # elif i == corner_id:  # corner
                     #     temp_corner_list.append( lib_objects.corner().init( screen_rect=d.rect(), classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()), detected_by_tf=True ) )
 
+        img.gaussian(1)
         # For every ball found, search for circles within the area
         for ball in balls:
             x, y, w, h = ball.get_screen_rect()
-            circle_det_rad = int(map_range(ball.get_distance(), 11, 60, 50, 15))
-            circle_min_rad = int(map_range(ball.get_distance(), 11, 60, 20, 4))
+            circle_det_rad = constrain(int(map_range(ball.get_distance(), 11, 60, 50, 15)), 0, 240)
+            circle_min_rad = constrain(int(map_range(ball.get_distance(), 11, 60, 20, 4)), 0, 240)
             sx, sy, sw, sh = x-circle_det_rad, y-circle_det_rad, w+2*circle_det_rad, h+2*circle_det_rad
             ball.set_screen_det_rad(sx, sy, sw, sh)
-            for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = CIRCLE_THRESH, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = circle_min_rad, r_max = min(sw, sh), r_step = 1):
-                ball.circles_detected.append(circle)
+            try:
+                for circle in img.find_circles(roi = (sx, sy, sw, sh), threshold = CIRCLE_THRESH, x_margin = int(sw/3), y_margin = int(sh/3), r_margin = 100, r_min = circle_min_rad, r_max = min(sw, sh), r_step = 1):
+                    ball.circles_detected.append(circle)
+            except OSError as e:
+                raise OSError(str(e) + f" Used det rad: sx{sx} sy{sy} sw{sw} sh{sh}")
+            ball.distance = None  # Bugfix: we want to use the center of a circle for distance, but here we already calculated get_distance(), which is buffered, so it is never recalculated with a circle-center
 
         # Additional Informations + result for each ball
         for ball in balls:
@@ -170,23 +193,6 @@ def black_white_handler():
             ball.histogram_classification = histogram_classification
 
             print(f"Ball: Class:{classified_as} HistoClass:{histogram_classification} x{x} y{y} w{w} h{h} x_off{ball.get_x_offset()} dist{ball.get_distance()} v{v:.3} StDev{stdev} Mode{mode} Confidence{conf}=(0.5 * {v}) + (0.2 * {certain}) + (0.3 * ({len(ball.circles_detected)}==1))")
-
-    if CORNER_ENABLED:
-        corner.init(reset=True)
-        temp_corner_list: list[lib_objects.corner] = []
-        # Search for black blobs as corners:
-        for b in img.find_blobs([(0, 34)], roi=(0, 5, 240,225), merge=True, margin=5):
-            (x, y, w, h) = b.rect()
-            if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
-                conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
-                if conf > 0.8:
-                    temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
-        # Only keep highest confidence corner
-        if len(temp_corner_list) > 0:
-            corner = max(temp_corner_list, key=lambda x: x.confidence)
-            x, y, w, h = corner.get_screen_rect()
-            b = corner.blob
-            print(f"Corner: x{x} y{y} w{w} h{h} x_off{corner.get_x_offset()} dist{corner.get_distance()} conf{corner.confidence} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
 
 def rgb_handler():
     global exit_line, img

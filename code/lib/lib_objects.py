@@ -21,7 +21,7 @@ class base_object:
         self.confidence:float
         self.histogram:histogram  # type:ignore
         self.valid:bool
-        
+
         self.distance = None
         self.x_offset = None
 
@@ -58,11 +58,21 @@ class base_object:
     def get_screen_center_point(self):
         return (int(self.screen_x+(0.5*self.screen_w)), int(self.screen_y+(0.5*self.screen_h)))
 
+    def _get_d_lin(self, y:float):
+        return -2.0434 * y + 146.1
+    def _get_d_pow(self, y:float):
+        return 13656.0 * (y ** -1.451)
     def get_distance(self):
         if isinstance(self.distance, type(None)):
-            self.distance = constrain(13656.0 * (float(self.get_screen_center_point()[1]) ** -1.451), -32767, 32767)  # see excel
+            y = float(self.get_screen_center_point()[1])
+            if y < 12.7728295977293:
+                self.distance = 120
+            elif y < 43.0241257004072:
+                self.distance = self._get_d_lin(y)
+            else:
+                self.distance = self._get_d_pow(y)
         return self.distance
-    
+
     def get_x_offset(self):
         if isinstance(self.x_offset, type(None)):
             self.x_offset = constrain(tan(radians(0.1733* float(self.get_screen_center_point()[0]) - 22.375)) * self.get_distance() + 5, -32767, 32767)
@@ -91,10 +101,13 @@ class ball(base_object):
         return super().init(screen_rect, screen_x, screen_y, screen_w, screen_h, confidence, histogram, reset)
 
     def get_screen_center_point(self):
-        if len(self.circles_detected) == 1:
+        if self.classified_as == self.BLACK and len(self.circles_detected) == 1:
             x = self.circles_detected[0].x()
             y = self.circles_detected[0].y()
-            return (x, y)
+            if self.screen_x < x < (self.screen_x + self.screen_w) and self.screen_y < y < (self.screen_y + self.screen_h):
+                return (x, y)
+            else:
+                return super().get_screen_center_point()
         else:
             return super().get_screen_center_point()
 
