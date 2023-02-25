@@ -1,3 +1,4 @@
+import pyb
 import sensor, time, tf, math, gc, omv
 import uos
 from image import Image
@@ -36,7 +37,7 @@ exit_line = lib_objects.exit_line().init(reset=True)
 ard_comm = lib_ard.ard_comm_uart()
 img: Image
 
-OMV_DEBUG:bool
+OMV_DEBUG = False
 usb = USB_VCP()
 ### ENDGLOBAL
 
@@ -122,12 +123,12 @@ def black_white_handler():
         corner.init(reset=True)
         temp_corner_list: list[lib_objects.corner] = []
         # Search for black blobs as corners:
-        for b in img.find_blobs([(0, 34)], roi=(0, 15, 240, 215), merge=True, margin=5):
+        for b in img.find_blobs([(0, 60)], roi=(0, 15, 240, 215), merge=True, margin=5):
             (x, y, w, h) = b.rect()
-            if b.pixels() > 500: # and x > 15 and (x+w) < (240-15) and y > 15 and (y+h) < (240-15):
-                conf = ((1-b.roundness()) * 0.33) + (b.elongation() * 0.34) + ((180-b.rotation_deg()) * 0.0018333333) # ( (180-x) * (1/180) ) * 0.33
-                if conf > 0.8:
-                    temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, confidence=conf, detected_by_tf=False ) )
+            if b.pixels() > 500:
+                temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, detected_by_tf=False ) )
+                conf = ((1-b.roundness()) * 0.2) + (b.elongation() * 0.2) + (constrain((temp_corner_list[-1].get_distance() * b.pixels()) / 450000, 0, 1) * 0.3) + ((b.density()>0.5) * 0.3)
+                temp_corner_list[-1].confidence = conf
         # Only keep highest confidence corner
         if len(temp_corner_list) > 0:
             corner = max(temp_corner_list, key=lambda x: x.confidence)
@@ -247,48 +248,54 @@ def drawing_handler():
         img.draw_string(x+2, y-9, f"{int(exit_line.confidence*100)} {int(exit_line.get_x_offset())}|{int(exit_line.get_distance())}", color=colors[exit_line_id], mono_space=False)
 
 if __name__ == '__main__':
-    clock = time.clock()
-    gc.enable()
+    try:
+        clock = time.clock()
+        gc.enable()
 
-    init_sensor()
+        init_sensor()
 
-    load_tf_models()
-    init_colors()
+        load_tf_models()
+        init_colors()
 
-    OMV_DEBUG = usb.isconnected()
-    blink_led()
+        OMV_DEBUG = usb.isconnected()
+        blink_led()
 
-    OMV_DEBUG = DEBUG_IN_IDE and OMV_DEBUG
+        OMV_DEBUG = DEBUG_IN_IDE and OMV_DEBUG
 
-    while(True):
-        clock.tick()
+        while(True):
+            clock.tick()
 
-        if black_white:
-            if BALLS_ENABLED or CORNER_ENABLED:
-                sensor.set_pixformat(sensor.GRAYSCALE)
-                img = sensor.snapshot()
-                black_white_handler()
-                ard_comm.send_gray_data(balls, corner)
+            if black_white:
+                if BALLS_ENABLED or CORNER_ENABLED:
+                    sensor.set_pixformat(sensor.GRAYSCALE)
+                    img = sensor.snapshot()
+                    black_white_handler()
+                    ard_comm.send_gray_data(balls, corner)
 
-                if OMV_DEBUG:
-                    omv.disable_fb(True)
+                    if OMV_DEBUG:
+                        omv.disable_fb(True)
 
-            if EXIT_LINE_ENABLED or OMV_DEBUG:
-                black_white = False
+                if EXIT_LINE_ENABLED or OMV_DEBUG:
+                    black_white = False
 
+            else:
+                if EXIT_LINE_ENABLED or OMV_DEBUG:
+                    sensor.set_pixformat(sensor.RGB565)
+                    img = sensor.snapshot()
+                    rgb_handler()
+                    ard_comm.send_rgb_data(exit_line)
+                    if OMV_DEBUG:
+                        drawing_handler()
+                        omv.disable_fb(False)
+
+                if BALLS_ENABLED or CORNER_ENABLED:
+                    black_white = True
+
+            ard_comm.tick()
+
+            print(clock.fps(), "fps", end="\n\n")
+    except Exception as e:
+        if OMV_DEBUG:
+            raise(e)
         else:
-            if EXIT_LINE_ENABLED or OMV_DEBUG:
-                sensor.set_pixformat(sensor.RGB565)
-                img = sensor.snapshot()
-                rgb_handler()
-                ard_comm.send_rgb_data(exit_line)
-                if OMV_DEBUG:
-                    drawing_handler()
-                    omv.disable_fb(False)
-
-            if BALLS_ENABLED or CORNER_ENABLED:
-                black_white = True
-
-        ard_comm.tick()
-
-        print(clock.fps(), "fps", end="\n\n")
+            pyb.hard_reset()
