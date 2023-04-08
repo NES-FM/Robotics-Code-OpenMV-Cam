@@ -78,7 +78,7 @@ class ard_comm:
         return ret_data.replace(b'\xff', b'\xfe')
 
     def pack_corner(self, params = None) -> bytes:
-        return pack("<Bfff", self.corner_id, self.corner.get_x_offset(), self.corner.get_distance(), self.corner.confidence).replace(b'\xff', b'\xfe') # type:ignore
+        return pack("<BfffB", self.corner_id, self.corner.get_x_offset(), self.corner.get_distance(), self.corner.confidence, self.corner.screen_w).replace(b'\xff', b'\xfe') # type:ignore
 
     def pack_exit_line(self, params = None) -> bytes:
         return pack("<Bfff", self.exit_line_id, self.exit_line.get_x_offset(), self.exit_line.get_distance(), self.exit_line.confidence).replace(b'\xff', b'\xfe') # type:ignore

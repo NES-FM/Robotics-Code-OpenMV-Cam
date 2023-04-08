@@ -1,10 +1,17 @@
 import pyb
 import sensor, time, tf, math, gc, omv
 import uos
+import image
 from image import Image
 from lib import lib_ard, lib_objects
 from pyb import USB_VCP, LED
 from lib.lib_objects import constrain
+
+from lib.vl53l5cx import RANGING_MODE_AUTONOMOUS, RANGING_MODE_CONTINUOUS, POWER_MODE_SLEEP, POWER_MODE_WAKEUP
+from lib.vl53l5cx import TARGET_ORDER_CLOSEST, TARGET_ORDER_STRONGEST, RESOLUTION_4X4, RESOLUTION_8X8
+from lib.vl53l5cx import DATA_AMBIENT_PER_SPAD, DATA_NB_SPADS_ENABLED, DATA_NB_TARGET_DETECTED, DATA_SIGNAL_PER_SPAD, DATA_RANGE_SIGMA_MM, DATA_DISTANCE_MM, DATA_REFLECTANCE, DATA_TARGET_STATUS, DATA_MOTION_INDICATOR
+from lib.vl53l5cx import STATUS_VALID
+from lib.vl53l5cx import VL53L5CXMP, make_sensor, map_index_to_y_pos
 
 ### CONFIG
 DEBUG_IN_IDE = True
@@ -15,6 +22,7 @@ X_OFFSET_WINDOWING = 70  # Range: 0-80
 CORNER_ENABLED = True
 BALLS_ENABLED = True
 EXIT_LINE_ENABLED = False
+TOF_ENABLED = True
 ### ENDCONFIG
 
 ### GLOBAL VARIABLES
@@ -39,6 +47,10 @@ img: Image
 
 OMV_DEBUG = False
 usb = USB_VCP()
+
+tof: VL53L5CXMP
+tof_detection_results = Image(8, 8, sensor.GRAYSCALE)
+tof_detection_results_240 = Image(240, 240, sensor.GRAYSCALE)
 ### ENDGLOBAL
 
 def map_range(x, in_min, in_max, out_min, out_max):
@@ -56,6 +68,22 @@ def do_boxes_overlap(box1, box2):
     y4 = y3 + box2[3]
 
     return (x1 < x4) and (x2 > x3) and (y1 < y4) and (y2 > y3)
+
+def init_tof():
+    global TOF_ENABLED, tof
+    if TOF_ENABLED:
+        tof = make_sensor()
+        tof.reset()
+
+        TOF_ENABLED = tof.is_alive()
+
+        tof.init()
+
+        tof.resolution = RESOLUTION_8X8
+        tof.ranging_freq = 10
+        tof.ranging_mode = RANGING_MODE_AUTONOMOUS
+        tof.target_order = TARGET_ORDER_CLOSEST
+
 
 def init_sensor():
     omv.disable_fb(True)
@@ -116,27 +144,87 @@ def blink_led():
     time.sleep_ms(200)
     led.off()
 
+def start_tof_ranging():
+    global TOF_ENABLED, tof
+    if TOF_ENABLED:
+        tof.start_ranging({DATA_DISTANCE_MM, DATA_TARGET_STATUS})
+
+def get_tof_results():
+    global TOF_ENABLED, tof, tof_detection_results, tof_detection_results_240
+    if TOF_ENABLED:
+        if tof.check_data_ready():
+            results = tof.get_ranging_data()
+            distance = results.distance_mm
+            status = results.target_status
+
+            if not isinstance(distance, type(None)) and not isinstance(status, type(None)):
+                for i, d in enumerate(distance):
+                    try:
+                        if status[i] == STATUS_VALID:
+                            tof_detection_results.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i]/10))
+                        else:
+                            tof_detection_results.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], 255)
+                    except Exception as e:
+                        print(f"Error with TOF_value at i:{i} dis:{distance[i]}, status:{status[i]}")
+
+                    #if (7-int(i/8)) == 0:
+                        #tof_detection_results.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i-8]/10))
+                    #elif (7-int(i/8)) == 7:
+                        #tof_detection_results.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i+8]/10))
+                    #else:
+                        #tof_detection_results.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int((distance[i-8] + distance[i+8]) / 20))
+
+            tof_detection_results_240.draw_image(tof_detection_results, 100, 140, x_size=280, y_size=280, hint=image.CENTER|image.BILINEAR)
+            #tof_detection_results_240.gaussian(2)
+
+            return True
+    return False
+
+def get_distance_in_roi(roi):
+    return tof_detection_results_240.get_histogram(roi=roi).get_statistics().lq()
+
 def black_white_handler():
     global balls, corner, img
-
+    #print("before corner")
     if CORNER_ENABLED:
         corner.init(reset=True)
         temp_corner_list: list[lib_objects.corner] = []
         # Search for black blobs as corners:
-        for b in img.find_blobs([(0, 60)], roi=(0, 15, 240, 215), merge=True, margin=5):
+        #print("before find_blobs")
+        for b in img.find_blobs([(0, 40)], roi=(0, 10, 240, 200), merge=True, margin=5):
             (x, y, w, h) = b.rect()
-            if b.pixels() > 500:
+            if h > 15:
                 temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, detected_by_tf=False ) )
-                conf = ((1-b.roundness()) * 0.2) + (b.elongation() * 0.2) + (constrain((temp_corner_list[-1].get_distance() * b.pixels()) / 450000, 0, 1) * 0.3) + ((b.density()>0.5) * 0.3)
-                temp_corner_list[-1].confidence = conf
+                distance = temp_corner_list[-1].get_distance()
+
+                conf_by_roundness = constrain(map_range(b.roundness(), 0.02, 0.2, 1, 0), 0, 1)
+                conf_by_elong = constrain(map_range(b.elongation(), 0.8, 0.99, 0, 1), 0, 1)
+                conf_by_dens = constrain(map_range(b.density(), 0.4, 0.8, 0, 1), 0, 1)
+
+                conf_by_pix_count = ( 20000.0 - abs( (-165.01 * distance + 17174.0) - b.pixels() ) ) / 20000.0
+                conf_by_w = ( 400.0 - abs( (-1.7528 * distance + 291.4) - w) ) / 400.0
+                conf_by_h = ( 80.0 - abs( (-0.5139 * distance + 71.45) - h) ) / 80.0
+
+                temp_corner_list[-1].confidence = (0.1375 * conf_by_roundness) + (0.1375 * conf_by_elong) + (0.25 * conf_by_dens) + (0.2 * conf_by_pix_count) + (0.1375 * conf_by_w) + (0.1375 * conf_by_h)
+
+                print(f"Possible corner: x{x} y{y} w{w} h{h} x_off{temp_corner_list[-1].get_x_offset()} "
+                + f"dist{temp_corner_list[-1].get_distance()} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} "
+                + f"elong{b.elongation()} dens{b.density()} convex{b.convexity()} "
+                + f"conf{temp_corner_list[-1].confidence} = [round:{conf_by_roundness}, elong:{conf_by_elong}, dens:{conf_by_dens}, pix:{conf_by_pix_count}, w:{conf_by_w}, h:{conf_by_h}]")
+            else:
+                print(f"Corner x{x} y{y} w{w} h{h} Dismissed because h{h} <= 15")
+
         # Only keep highest confidence corner
         if len(temp_corner_list) > 0:
-            corner = max(temp_corner_list, key=lambda x: x.confidence)
-            x, y, w, h = corner.get_screen_rect()
-            b = corner.blob
-            print(f"Corner: x{x} y{y} w{w} h{h} x_off{corner.get_x_offset()} dist{corner.get_distance()} conf{corner.confidence} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
+            possible_corner = max(temp_corner_list, key=lambda x: x.confidence)
+            if possible_corner.confidence > 0.7:
+                corner = possible_corner
+                x, y, w, h = corner.get_screen_rect()
+                b = corner.blob
+                print(f"Selceted corner: x{x} y{y} w{w} h{h} x_off{corner.get_x_offset()} dist{corner.get_distance()} conf{corner.confidence} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
 
-    if BALLS_ENABLED: # or CORNER_ENABLED
+    #print("before balls")
+    if BALLS_ENABLED:
         balls.clear()
         # Tensorflow detection
         for i, detection_list in enumerate(net.detect(img, thresholds=[(math.ceil(MIN_TF_CONF * 255), 255)])):
@@ -144,7 +232,7 @@ def black_white_handler():
             if (len(detection_list) == 0): continue # no detections for this class?
 
             for d in detection_list:
-                if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 56, 70)):  # Make sure that claw doesn't get detected
+                if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 130, 70)):  # Make sure that claw doesn't get detected
                     if i == black_ball_id:  # black ball
                         balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
                     elif i == silver_ball_id:  # silver_ball
@@ -214,7 +302,6 @@ def rgb_handler():
             b = exit_line.blob
             print(f"Exit: x{x} y{y} w{w} h{h} x_off{exit_line.get_x_offset()} dist{exit_line.get_distance()} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} elong{b.elongation()} dens{b.density()} convex{b.convexity()}")
 
-
 def drawing_handler():
     global balls, corner, exit_line, img
 
@@ -248,54 +335,58 @@ def drawing_handler():
         img.draw_string(x+2, y-9, f"{int(exit_line.confidence*100)} {int(exit_line.get_x_offset())}|{int(exit_line.get_distance())}", color=colors[exit_line_id], mono_space=False)
 
 if __name__ == '__main__':
-    try:
-        clock = time.clock()
-        gc.enable()
+    clock = time.clock()
+    gc.enable()
 
-        init_sensor()
+    #print("Before tof init")
+    #init_tof()
+    #print("before tof start ranging")
+    #start_tof_ranging()
+    #print("before init_sensor")
+    init_sensor()
+    #print("before tf")
+    load_tf_models()
+    init_colors()
+    #print("before omv")
+    OMV_DEBUG = usb.isconnected()
+    blink_led()
 
-        load_tf_models()
-        init_colors()
+    OMV_DEBUG = DEBUG_IN_IDE and OMV_DEBUG
+    #print("before while")
+    while(True):
+        clock.tick()
+        #print("in while before tof")
+        #get_tof_results()
+        #start_tof_ranging()
+        #print("before if")
+        if black_white:
+            if BALLS_ENABLED or CORNER_ENABLED:
+                #print("in balls_or_corner")
+                sensor.set_pixformat(sensor.GRAYSCALE)
+                img = sensor.snapshot()
+                #print("before handler")
+                black_white_handler()
+                ard_comm.send_gray_data(balls, corner)
 
-        OMV_DEBUG = usb.isconnected()
-        blink_led()
+                if OMV_DEBUG:
+                    omv.disable_fb(True)
 
-        OMV_DEBUG = DEBUG_IN_IDE and OMV_DEBUG
+            if EXIT_LINE_ENABLED or OMV_DEBUG:
+                black_white = False
 
-        while(True):
-            clock.tick()
-
-            if black_white:
-                if BALLS_ENABLED or CORNER_ENABLED:
-                    sensor.set_pixformat(sensor.GRAYSCALE)
-                    img = sensor.snapshot()
-                    black_white_handler()
-                    ard_comm.send_gray_data(balls, corner)
-
-                    if OMV_DEBUG:
-                        omv.disable_fb(True)
-
-                if EXIT_LINE_ENABLED or OMV_DEBUG:
-                    black_white = False
-
-            else:
-                if EXIT_LINE_ENABLED or OMV_DEBUG:
-                    sensor.set_pixformat(sensor.RGB565)
-                    img = sensor.snapshot()
-                    rgb_handler()
-                    ard_comm.send_rgb_data(exit_line)
-                    if OMV_DEBUG:
-                        drawing_handler()
-                        omv.disable_fb(False)
-
-                if BALLS_ENABLED or CORNER_ENABLED:
-                    black_white = True
-
-            ard_comm.tick()
-
-            print(clock.fps(), "fps", end="\n\n")
-    except Exception as e:
-        if OMV_DEBUG:
-            raise(e)
         else:
-            pyb.hard_reset()
+            if EXIT_LINE_ENABLED or OMV_DEBUG:
+                sensor.set_pixformat(sensor.RGB565)
+                img = sensor.snapshot()
+                rgb_handler()
+                ard_comm.send_rgb_data(exit_line)
+                if OMV_DEBUG:
+                    drawing_handler()
+                    omv.disable_fb(False)
+
+            if BALLS_ENABLED or CORNER_ENABLED:
+                black_white = True
+
+        ard_comm.tick()
+
+        print(clock.fps(), "fps", end="\n\n")

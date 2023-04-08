@@ -72,12 +72,13 @@ def main():
                 if status[i] == STATUS_VALID:
                     img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i]/10))
                 else:
-                    if (7-int(i/8)) == 0:
-                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i-8]/10))
-                    elif (7-int(i/8)) == 7:
-                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i+8]/10))
-                    else:
-                        img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int((distance[i-8] + distance[i+8]) / 20))
+                    img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], 255)
+                    #if (7-int(i/8)) == 0:
+                        #img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i-8]/10))
+                    #elif (7-int(i/8)) == 7:
+                        #img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int(distance[i+8]/10))
+                    #else:
+                        #img.set_pixel(7-int(i/8), map_index_to_y_pos[i%8], int((distance[i-8] + distance[i+8]) / 20))
 
             #print("write 1")
 
@@ -87,7 +88,7 @@ def main():
             for i in range(0, 239):
                 print(i, im240.get_pixel(120, i), sep=" ")
 
-            snpsht.draw_image(im240, 0, 0, alpha=100)
+            snpsht.draw_image(im240, 0, 0, color_palette=sensor.PALETTE_RAINBOW, alpha=180)
             #print("write 2")
             print(clock.fps())
             #print(" ")

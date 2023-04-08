@@ -8,6 +8,15 @@ import sys
 from os import stat
 from machine import I2C, Pin
 
+map_index_to_y_pos = {0: 1,
+                      1: 0,
+                      2: 3,
+                      3: 2,
+                      4: 5,
+                      5: 4,
+                      6: 7,
+                      7: 6}
+
 def make_sensor():
     # LILYGO TTGO
     lpn_pin = "P9"
@@ -840,7 +849,7 @@ class VL53L5CX:
 
         self._b1[0] = (value * 255) // 100
         self._dci_replace_data(bytearray(16), _DCI_SHARPENER, self._b1, 0xD)
-        
+
     def _rd_byte(self, reg16) -> int: ...
     def _rd_multi(self, reg16, size) -> bytes: ...
     def _wr_byte(self, reg16, val): ...
