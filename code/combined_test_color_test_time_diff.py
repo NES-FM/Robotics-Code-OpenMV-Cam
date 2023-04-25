@@ -191,7 +191,7 @@ def black_white_handler():
         temp_corner_list: list[lib_objects.corner] = []
         # Search for black blobs as corners:
         #print("before find_blobs")
-        for b in img.find_blobs([(0, 40)], roi=(0, 10, 240, 200), merge=True, margin=5):
+        for b in img.find_blobs([(0, 40)], roi=(0, 12, 240, 200), merge=True, margin=5):
             (x, y, w, h) = b.rect()
             if h > 15:
                 temp_corner_list.append( lib_objects.corner().init( screen_rect=b.rect(), histogram=img.get_histogram(roi=b.rect()), blob=b, detected_by_tf=False ) )
@@ -201,16 +201,28 @@ def black_white_handler():
                 conf_by_elong = constrain(map_range(b.elongation(), 0.8, 0.99, 0, 1), 0, 1)
                 conf_by_dens = constrain(map_range(b.density(), 0.4, 0.8, 0, 1), 0, 1)
 
-                conf_by_pix_count = ( 20000.0 - abs( (-165.01 * distance + 17174.0) - b.pixels() ) ) / 20000.0
-                conf_by_w = ( 400.0 - abs( (-1.7528 * distance + 291.4) - w) ) / 400.0
-                conf_by_h = ( 80.0 - abs( (-0.5139 * distance + 71.45) - h) ) / 80.0
+                if conf_by_dens > 0.45:
+                    expected_pix_count = (-165.01 * distance + 18000.0) #+ 17174.0)
+                    expected_w = (-1.7528 * distance + 310.0) #+ 291.4)
+                    expected_h = (-0.5139 * distance + 85.0) #+ 71.45)
 
-                temp_corner_list[-1].confidence = (0.1375 * conf_by_roundness) + (0.1375 * conf_by_elong) + (0.25 * conf_by_dens) + (0.2 * conf_by_pix_count) + (0.1375 * conf_by_w) + (0.1375 * conf_by_h)
+                    #                                                                                                  from     to       constrain
+                    conf_by_pix_count = constrain(map_range(abs(b.pixels() - expected_pix_count) / expected_pix_count, 0.25, 1, 1, 0),   0, 1)    #( 20000.0 - abs(  - b.pixels() ) ) / 20000.0
+                    conf_by_w = constrain(map_range(abs(w - expected_w) / expected_w,                                  0,    1, 1, 0),   0, 1)    #( 400.0 - abs(  - w) ) / 400.0
+                    conf_by_h = constrain(map_range(abs(h - expected_h) / expected_h,                                  0.1,    1, 1, 0),   0, 1)    #( 80.0 - abs(  - h) ) / 80.0
 
-                print(f"Possible corner: x{x} y{y} w{w} h{h} x_off{temp_corner_list[-1].get_x_offset()} "
-                + f"dist{temp_corner_list[-1].get_distance()} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} "
-                + f"elong{b.elongation()} dens{b.density()} convex{b.convexity()} "
-                + f"conf{temp_corner_list[-1].confidence} = [round:{conf_by_roundness}, elong:{conf_by_elong}, dens:{conf_by_dens}, pix:{conf_by_pix_count}, w:{conf_by_w}, h:{conf_by_h}]")
+                    end_x = x + w
+                    if end_x != 240 and x != 0:  # Full Rectange Visible
+                        temp_corner_list[-1].confidence = (0.13 * conf_by_roundness) + (0.13 * conf_by_elong) + (0.20 * conf_by_dens) + (0.2 * conf_by_pix_count) + (0.14 * conf_by_w) + (0.2 * conf_by_h)
+                    else:
+                        temp_corner_list[-1].confidence = (0 * conf_by_roundness) + (0 * conf_by_elong) + (0.3 * conf_by_dens) + (0.3 * conf_by_pix_count) + (0.15 * conf_by_w) + (0.25 * conf_by_h)
+
+                    print(f"Possible corner: x{x} y{y} w{w} h{h} x_off{temp_corner_list[-1].get_x_offset()} "
+                    + f"dist{temp_corner_list[-1].get_distance()} pix{b.pixels()} rot{b.rotation_deg()}° round{b.roundness()} "
+                    + f"elong{b.elongation()} dens{b.density()} convex{b.convexity()} "
+                    + f"conf{temp_corner_list[-1].confidence} = [round:{conf_by_roundness}, elong:{conf_by_elong}, dens:{conf_by_dens}, pix:{conf_by_pix_count}, w:{conf_by_w}, h:{conf_by_h}]")
+                else:
+                    print(f"Corner x{x} y{y} w{w} h{h} Dismissed because conf_by_dens{conf_by_dens} < 0.45")
             else:
                 print(f"Corner x{x} y{y} w{w} h{h} Dismissed because h{h} <= 15")
 
@@ -232,7 +244,7 @@ def black_white_handler():
             if (len(detection_list) == 0): continue # no detections for this class?
 
             for d in detection_list:
-                if not do_boxes_overlap(d.rect(), (0, 208, 177, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 130, 70)):  # Make sure that claw doesn't get detected
+                if not do_boxes_overlap(d.rect(), (0, 208, 190, 33)) and not do_boxes_overlap(d.rect(), (0, 170, 130, 70)):  # Make sure that claw doesn't get detected
                     if i == black_ball_id:  # black ball
                         balls.append( lib_objects.ball().init( screen_rect=d.rect(), classified_as=lib_objects.ball.BLACK, classification_value=d.output(), histogram=img.get_histogram(roi=d.rect()) ) )
                     elif i == silver_ball_id:  # silver_ball
