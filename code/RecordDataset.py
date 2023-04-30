@@ -2,10 +2,14 @@
 
 import sensor, image, time, pyb, uos
 
-sensor.reset()
-sensor.set_framesize(sensor.QVGA)
-sensor.set_pixformat(sensor.GRAYSCALE)
-sensor.set_windowing((240, 240))
+X_OFFSET_WINDOWING = 70  # Range: 0-80
+
+sensor.reset()                         # Reset and initialize the sensor.
+sensor.set_pixformat(sensor.RGB565)    # Set pixel format to RGB565 (or GRAYSCALE)
+sensor.set_framesize(sensor.QVGA)      # Set frame size to QVGA (320x240)
+sensor.set_vflip(True)
+sensor.set_hmirror(True)
+sensor.set_windowing((X_OFFSET_WINDOWING, 0, 240, 240))        # Set 240x240 window.
 sensor.skip_frames(time = 2000)
 
 dir_name = "images/"
